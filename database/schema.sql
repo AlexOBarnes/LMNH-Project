@@ -58,7 +58,7 @@ CREATE TABLE botanists (
 CREATE TABLE plants (
     plant_id INT NOT NULL AUTO_INCREMENT,
     location_id INT NOT NULL,
-    last_watering DATETIME NOT NULL,
+    last_watering DATETIME NOT NULL CHECK (last_watering <= CURRENT_TIMESTAMP),
     plant_species_id INT NOT NULL,
     PRIMARY KEY(plant_id),
     FOREIGN KEY(location_id) REFERENCES origins(location_id),
