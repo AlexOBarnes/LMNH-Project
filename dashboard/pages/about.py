@@ -7,19 +7,16 @@ if __name__ == "__main__":
     st.markdown("<h1 style='color: #e3298c;'>About Us</h1>",
                 unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.image("https://dsmmagazine.com/wp-content/uploads/2020/10/conservatory_sipandstroll-1536x1028.jpg",
-             caption="Liverpool Natural History Museum's Conservatory", width=500)
+    st.write("""
+    **Liverpool Natural History Museum (LNHM)** is at the forefront of botanical science, dedicated to conserving and showcasing the incredible 
+    diversity of plant life. With the opening of our new botanical wing, we are excited to share the wonders of the plant world with visitors and researchers alike.
+    
+    Our conservatory houses a wide variety of plants from around the world, each of which contributes to a dynamic ecosystem that we work hard to maintain.
+    In our efforts to preserve these plants, we have integrated cutting-edge technology to monitor their health in real-time.
+    """)
 
-    with col2:
-        st.write("""
-        **Liverpool Natural History Museum (LNHM)** is at the forefront of botanical science, dedicated to conserving and showcasing the incredible 
-        diversity of plant life. With the opening of our new botanical wing, we are excited to share the wonders of the plant world with visitors and researchers alike.
-        
-        Our conservatory houses a wide variety of plants from around the world, each of which contributes to a dynamic ecosystem that we work hard to maintain.
-        In our efforts to preserve these plants, we have integrated cutting-edge technology to monitor their health in real-time.
-        """)
+    st.image("https://dsmmagazine.com/wp-content/uploads/2020/10/conservatory_sipandstroll-1536x1028.jpg",
+            caption="Liverpool Natural History Museum's Conservatory", width=500)
 
     st.subheader("Our Plant Monitoring Initiative")
     st.write("""
