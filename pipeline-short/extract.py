@@ -4,6 +4,7 @@ import logging
 import requests
 
 import asyncio
+import aiohttp
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
@@ -37,16 +38,36 @@ def get_num_plants() -> int:
     return 0
 
 
-def validate_reponse(response: dict) -> bool:
-    '''Return True if a response is valid'''
-    if not all(response.get(k, False) for k in REQUIRED_FIELDS):
-        logging.warning("response %s is missing required fields", response)
-        return False
-    return True
+def get_plant_data(plant_id: int) -> dict | None:
+    '''Return data from a plant_id endpoint'''
+
+    response = requests.get(get_url(plant_id), timeout=10)
+    if response.status_code == 200:
+        LOGGER.info("Retrieved data for plant %s", plant_id)
+        data = response.json()
+        if validate_reponse(data):
+            return data
+
+    LOGGER.warning("Unseccessful response for plant %s", plant_id)
+    return None
+
+
+async def get_plant_data(session: aiohttp.ClientSession, plant_id: int) -> dict | None:
+    '''Return data from a plant_id endpoint asynchronously'''
+    async with session.get(get_url(plant_id)) as response:
+        if response.status == 200:
+            LOGGER.info("Retrieved data for plant %s", plant_id)
+            data = await response.json()
+            if validate_response(data):
+                return data
+
+        LOGGER.warning("Unsuccessful response for plant %s", plant_id)
+        return None
 
 
 def extract() -> pd.DataFrame:
     '''Return a dataframe with the extracted data'''
+    num_plants = get_num_plants()
 
 
 if __name__ == "__main__":
