@@ -22,7 +22,7 @@ def extract_date(timestamp: str) -> dt:
 
 def find_location_id(location_data: list) -> int:
     '''Returns the location id for a set of longitude and latitude'''
-    q='''SELECT location_id 
+    q='''SELECT location_id
         FROM gamma.origins
         WHERE longitude = ? AND latitude = ?'''
     with get_connection() as conn:
@@ -33,7 +33,7 @@ def find_location_id(location_data: list) -> int:
 
 def find_species_id(name: list) -> int:
     '''Returns the location id for a set of longitude and latitude'''
-    q = '''SELECT plant_species_id 
+    q = '''SELECT plant_species_id
         FROM gamma.plant_species
         WHERE LOWER(common_name) LIKE LOWER(?)'''
     with get_connection() as conn:
@@ -56,26 +56,26 @@ def get_plant_data() -> pd.DataFrame:
         response = req.get(BASE_URL+f'{i}',timeout=10)
         if response.status_code == 200:
             data.append(extract_plant_data(response.json()))
-    
+
     return data
 
 def insert_data(plant_data) -> None:
     '''Inserts plant data from endpoints'''
-    q='''INSERT INTO plants 
+    q='''INSERT INTO plants
     (plant_id,last_watering,location_id,plant_species_id)
     VALUES (?,?,?,?)'''
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.executemany(q,plant_data)
             conn.commit()
-    
+
 
 def pipeline() -> None:
     '''Runs the ETL pipeline for the plant data'''
     load_dotenv()
     data = [plant for plant in get_plant_data() if None not in plant]
     insert_data(data)
-    
+
 
 if __name__ == '__main__':
     pipeline()
