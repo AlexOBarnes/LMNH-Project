@@ -2,14 +2,13 @@
 import logging
 
 import requests
-
-import asyncio
 import aiohttp
+import asyncio
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
 
-BASE_URL = "https://data-eng-plants-api.herokuapp.com"
+BASE_URL = "http://data-eng-plants-api.herokuapp.com/"
 
 REQUIRED_FIELDS = ["botanist", "plant_id"]
 
@@ -24,32 +23,22 @@ def get_url(id: int):
 def get_num_plants() -> int:
     '''Return the number of plants on display.'''
 
-    response = requests.get(BASE_URL, timeout=10)
+    response = requests.get(BASE_URL, timeout=10).json()
 
-    if response.status_code != 200:
-        logging.error("Invalid response %s", response.status_code)
-        raise ValueError("Request unsuccessful.")
-
-    num_plants = response.json().get("success", False)
-    if num_plants is not False:
-        logging.info("Number of plants on display is %s", num_plants)
+    if response.get("success", False) is not False:
+        num_plants = response.get("plants_on_display")
+        LOGGER.info("Number of plants on display is %s", num_plants)
         return int(num_plants)
 
     return 0
 
 
-def get_plant_data(plant_id: int) -> dict | None:
-    '''Return data from a plant_id endpoint'''
-
-    response = requests.get(get_url(plant_id), timeout=10)
-    if response.status_code == 200:
-        LOGGER.info("Retrieved data for plant %s", plant_id)
-        data = response.json()
-        if validate_reponse(data):
-            return data
-
-    LOGGER.warning("Unseccessful response for plant %s", plant_id)
-    return None
+def validate_response(response: dict) -> bool:
+    '''Return True if a response is valid'''
+    if not all(response.get(k, False) for k in REQUIRED_FIELDS):
+        LOGGER.warning("response %s is missing required fields", response)
+        return False
+    return True
 
 
 async def get_plant_data(session: aiohttp.ClientSession, plant_id: int) -> dict | None:
@@ -65,10 +54,43 @@ async def get_plant_data(session: aiohttp.ClientSession, plant_id: int) -> dict 
         return None
 
 
+async def fetch_all_plants(num_plants: int) -> list:
+    '''Fetch data for all plant endpoints asynchronously'''
+    async with aiohttp.ClientSession() as session:
+
+        tasks = []
+        plant_id = 0
+        not_found_streak = 0
+
+        while len(tasks) < num_plants:
+
+            task = get_plant_data(session, plant_id)
+
+            if task is not None:
+                not_found_streak = 0
+                tasks.append(task)
+            else:
+                not_found_streak += 1
+
+            plant_id += 1
+
+        results = await asyncio.gather(*tasks)
+        return [result for result in results if result]
+
+
 def extract() -> pd.DataFrame:
     '''Return a dataframe with the extracted data'''
     num_plants = get_num_plants()
 
+    plant_data = asyncio.run(fetch_all_plants(num_plants))
+
+    if plant_data:
+        return pd.DataFrame(plant_data)
+
+    return pd.DataFrame()
+
 
 if __name__ == "__main__":
-    ...
+    print(get_num_plants())
+    df = extract()
+    print(df)
