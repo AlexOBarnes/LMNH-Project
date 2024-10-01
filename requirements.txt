@@ -1,0 +1,8 @@
+pandas
+requests
+pyodbc
+python-dotenv
+pytest
+pylint
+boto3
+altair
