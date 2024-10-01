@@ -74,8 +74,10 @@ def get_plant_data() -> pd.DataFrame:
         response = req.get(BASE_URL+f'{i}', timeout=10)
         logging.info('Request for endpoint: %s', i)
         if response.status_code == 200:
-            data.append(extract_plant_data(response.json()))
             logging.info('Data acquired for endpoint: %s.', i)
+            data.append(extract_plant_data(response.json()))
+        else:
+            logging.info('Unsuccessful request for endpoint: %s,', i)
 
     return data
 
