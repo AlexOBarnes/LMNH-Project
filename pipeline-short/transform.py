@@ -3,6 +3,11 @@ import re
 import pandas as pd
 
 
+def get_connection():
+    '''Retrieves connection to the RDS database'''
+    
+
+
 def is_valid_email(email: str) -> bool:
     '''Returns True if an email is valid'''
     return (isinstance(email, str)) and ("@" in email)
@@ -24,7 +29,7 @@ def split_data(plant_data: dict) -> dict[dict]:
 
 
 def get_plant_data(plant_dict: dict):
-    '''Gets plant data, including validation'''
+    '''Gets plant data, including validation.'''
 
 
 def get_last_watered(last_watered_entry: str | None) -> bool:
