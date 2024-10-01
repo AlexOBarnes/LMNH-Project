@@ -10,6 +10,8 @@ LOGGER = logging.getLogger(__name__)
 
 BASE_URL = "https://data-eng-plants-api.herokuapp.com"
 
+REQUIRED_FIELDS = ["botanist", "plant_id"]
+
 
 def get_url(id: int):
     '''Gets the API url'''
@@ -37,7 +39,10 @@ def get_num_plants() -> int:
 
 def validate_reponse(response: dict) -> bool:
     '''Return True if a response is valid'''
-    if not response.get("id",)
+    if not all(response.get(k, False) for k in REQUIRED_FIELDS):
+        logging.warning("response %s is missing required fields", response)
+        return False
+    return True
 
 
 def extract() -> pd.DataFrame:
