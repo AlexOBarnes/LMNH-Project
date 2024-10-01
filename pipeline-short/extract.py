@@ -2,8 +2,9 @@
 import logging
 
 import requests
-import aiohttp
 import asyncio
+import aiohttp
+
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
