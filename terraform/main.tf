@@ -210,14 +210,12 @@ resource "aws_lambda_function" "long_pipeline" {
 
   environment {
     variables = {
-      DB_HOST               = var.DB_HOST
-      DB_PORT               = var.DB_PORT
-      DB_NAME               = var.DB_NAME
-      DB_USER               = var.DB_USER
-      DB_PASSWORD           = var.DB_PW
-      DB_BUCKET             = var.BUCKET
-      AWS_ACCESS_KEY        = var.AWS_ACCESS_KEY
-      AWS_SECRET_ACCESS_KEY = var.AWS_SECRET_KEY
+      DB_HOST     = var.DB_HOST
+      DB_PORT     = var.DB_PORT
+      DB_NAME     = var.DB_NAME
+      DB_USER     = var.DB_USER
+      DB_PASSWORD = var.DB_PW
+      DB_BUCKET   = var.BUCKET
     }
   }
 }
