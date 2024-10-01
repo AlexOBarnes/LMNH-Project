@@ -57,7 +57,7 @@ CREATE TABLE gamma.botanists (
 );
 
 CREATE TABLE gamma.plants (
-    plant_id INT IDENTITY(1,1),
+    plant_id INT NOT NULL UNIQUE,
     location_id INT NOT NULL,
     last_watering DATETIME NOT NULL CHECK (last_watering <= CURRENT_TIMESTAMP),
     plant_species_id INT NOT NULL,

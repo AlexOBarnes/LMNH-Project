@@ -1,0 +1,4 @@
+pyodbc
+python-dotenv
+requests
+pandas
