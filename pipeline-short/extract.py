@@ -95,11 +95,11 @@ def extract() -> pd.DataFrame:
                 str(round(perf_counter()-timer, 3)))
 
     if plant_data:
-        return pd.DataFrame(plant_data)
-
-    return pd.DataFrame()
+        return plant_data
+    return []
 
 
 if __name__ == "__main__":
     logger_setup("log_extract.log", "logs")
-    extract()
+    data = extract()
+    print(data)
