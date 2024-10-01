@@ -61,7 +61,7 @@ def get_plant_data() -> pd.DataFrame:
 
 def insert_data(plant_data) -> None:
     '''Inserts plant data from endpoints'''
-    q='''INSERT INTO plants
+    q='''INSERT INTO gamma.plants
     (plant_id,last_watering,location_id,plant_species_id)
     VALUES (?,?,?,?)'''
     with get_connection() as conn:
