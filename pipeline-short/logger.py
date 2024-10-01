@@ -18,4 +18,4 @@ if __name__ == "__main__":
 
     logger_setup("test_logs.log", "logs")
     LOGGER = logging.getLogger(__name__)
-    LOGGER.info("testing logs")
+    LOGGER.info("testing logger is working")
