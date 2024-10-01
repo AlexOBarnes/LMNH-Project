@@ -6,6 +6,7 @@ import asyncio
 import aiohttp
 
 import pandas as pd
+from logger import logger_setup
 
 LOGGER = logging.getLogger(__name__)
 
@@ -92,6 +93,5 @@ def extract() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    print(get_num_plants())
-    df = extract()
-    print(df)
+    logger_setup("log_extract.log", "logs")
+    extract()
