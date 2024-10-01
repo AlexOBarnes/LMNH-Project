@@ -1,10 +1,12 @@
 '''Extraction of the data'''
 import logging
-
+from time import perf_counter
 import requests
-import aiohttp
 import asyncio
+import aiohttp
+
 import pandas as pd
+from logger import logger_setup
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,12 +24,16 @@ def get_url(id: int):
 
 def get_num_plants() -> int:
     '''Return the number of plants on display.'''
-
+    timer = perf_counter()
     response = requests.get(BASE_URL, timeout=10).json()
 
     if response.get("success", False) is not False:
         num_plants = response.get("plants_on_display")
         LOGGER.info("Number of plants on display is %s", num_plants)
+
+        LOGGER.info("Time taken to retrieve plant count: %s",
+                    str(round(perf_counter()-timer, 3)))
+
         return int(num_plants)
 
     return 0
@@ -80,9 +86,13 @@ async def fetch_all_plants(num_plants: int) -> list:
 
 def extract() -> pd.DataFrame:
     '''Return a dataframe with the extracted data'''
+    timer = perf_counter()
     num_plants = get_num_plants()
 
     plant_data = asyncio.run(fetch_all_plants(num_plants))
+
+    LOGGER.info("Retrieved plant data. Time taken: %s",
+                str(round(perf_counter()-timer, 3)))
 
     if plant_data:
         return pd.DataFrame(plant_data)
@@ -91,6 +101,5 @@ def extract() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    print(get_num_plants())
-    df = extract()
-    print(df)
+    logger_setup("log_extract.log", "logs")
+    extract()
