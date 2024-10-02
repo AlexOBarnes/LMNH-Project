@@ -3,7 +3,6 @@ into a CSV to be stored in an S3 bucket."""
 
 from os import environ as ENV
 import pyodbc
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 
