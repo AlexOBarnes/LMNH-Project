@@ -11,7 +11,9 @@ def transform_data_to_csv(data: list[dict]) -> StringIO:
     csv_buffer = StringIO()
 
     if not data:
-        return "id,name,moisture\n"
+        csv_buffer.write("id,name,moisture\n")
+        csv_buffer.seek(0)
+        return csv_buffer
 
     df = pd.DataFrame(data)
     df.to_csv(csv_buffer, index=False)
