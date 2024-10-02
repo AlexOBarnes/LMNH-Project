@@ -13,10 +13,6 @@ from dotenv import load_dotenv
 LOGGER = logging.getLogger(__name__)
 
 
-def clean_extracted_data():
-    extract
-
-
 def get_connection() -> pyodbc.Connection | None:
     """Connects to an RDS database using pyodbc."""
 
@@ -36,6 +32,28 @@ def get_connection() -> pyodbc.Connection | None:
     except pyodbc.Error as err:
         LOGGER.error(f"Error connecting to RDS %s: ", err)
         raise err
+
+
+def upsert_plants(curr, plant_data: list[dict]) -> None:
+    """Inserts new plants into the database or updates existing ones."""
+
+    for plant in plant_data:
+
+        try:
+            plant_id = plant["plant_id"]
+            name = plant['name']
+            recording_taken = pd.to_datetime(plant['recording_taken'])
+            soil_moisture = plant['soil_moisture']
+            temperature = plant['temperature']
+            botanist_dict = plant['botanist']
+        except:
+            continue
+
+        last_watered = plant.get("last_watered", dt.isoformat(dt.now()))
+
+        last_watered = pd.to_datetime(plant['last_watered'])
+
+        current_plant = get_current_plant_properties(curr, plant_id)
 
 
 def is_valid_email(email: str) -> bool:
