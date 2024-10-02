@@ -3,3 +3,5 @@ pylint
 pytest
 requests
 aiohttp
+python-dotenv
+pyodbc

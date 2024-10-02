@@ -1,6 +1,98 @@
 '''Transfroms the extracted data'''
-import re
-import pandas as pd
+import logging
+from datetime import datetime as dt
+from os import environ as ENV
+
+import pyodbc
+
+from dotenv import load_dotenv
+
+from logger import logger_setup
+
+LOGGER = logging.getLogger(__name__)
+
+
+def get_connection() -> pyodbc.Connection | None:
+    """Connects to an RDS database using pyodbc."""
+
+    try:
+        connection_string = (
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"SERVER={ENV["DB_HOST"]};"
+            f"DATABASE={ENV["DB_NAME"]};"
+            f"UID={ENV["DB_USER"]};"
+            f"PWD={ENV["DB_PASSWORD"]}"
+        )
+
+        connection = pyodbc.connect(connection_string)
+        LOGGER.info("Connection established to RDS")
+        return connection
+
+    except Exception as err:
+        LOGGER.error(f"Error connecting to RDS %s: ", err)
+        raise err
+
+
+def upsert_plants(curr, plant_data: list[dict]) -> None:
+    """Inserts new plants into the database or updates existing ones."""
+
+    for plant in plant_data:
+
+        try:
+            plant_id = plant["plant_id"]
+
+        except:
+
+            continue
+
+        last_watered = plant.get("last_watered", dt.isoformat(dt.now()))
+
+        last_watered = dt.strptime(last_watered, '%a, %d %b %Y %H:%M:%S %Z')
+
+        current_plant = get_current_plant_properties(curr, plant_id)
+
+        if not current_plant:
+            insert_new_plant(curr, plant)
+
+        curr_last_watered = current_plant["last_watering"]
+
+        if not curr_last_watered and not last_watered:
+            continue
+
+        if last_watered:
+            update_plant_watered(curr, plant_id, last_watered)
+
+        try:
+            botanist = plant["botanist"]
+        except:
+            continue
+
+        botanist_data = get_botanist_data(botanist)
+
+
+def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
+    '''Update a plant's last_watering entry'''
+
+    cursor.execute(
+        """
+            UPDATE gamma.plants
+            SET last_watering = ?
+            WHERE plant_id = ?
+            """,
+        (new_last_watered, plant_id_to_update)
+    )
+
+
+def insert_new_plant(cursor, plant_dict):
+    '''Using a plant dictionary, inserts a new plant.'''
+    cursor.execute(
+        """
+            INSERT INTO gamma.plants (plant_id, name, last_watering)
+            VALUES (?, ?, ?)
+            """,
+        (plant_dict['plant_id'], plant_dict['name'],
+         plant_dict.get('last_watered'))
+    )
 
 
 def is_valid_email(email: str) -> bool:
@@ -11,24 +103,68 @@ def is_valid_email(email: str) -> bool:
 def split_name(name: str) -> list[str]:
     '''Return the first and last name'''
 
-    names = name.split(" ")
+    names = name.strip().split(" ")
     if len(names) > 1:
-        return [names[0], " ".join(names[1:])]
+        return [names[0].strip(), " ".join(names[1:]).strip()]
     else:
         return [name, ""]
 
 
-def split_data(plant_data: dict) -> dict[dict]:
-    '''Splits the plant data into dictionaries for different tables'''
-    return {"botanist": get_botanist_data(plant_data["botanist"]), "plant": get_plant_data(plant_data)}
+def get_current_plant_properties(curr, plant_id: int) -> dict | None:
+    """Returns the current data for a given plant_id or None if not found."""
+
+    try:
+        curr.execute(
+            "SELECT location_id, last_watering,plant_species_id FROM gamma.plants WHERE plant_id = ?", (plant_id,))
+        result = curr.fetchone()
+
+    except Exception as err:
+        LOGGER.error(err)
+        return None
+
+    LOGGER.info(f'Plant {plant_id} has current state {result}')
+
+    return result
 
 
-def get_plant_data(plant_dict: dict):
-    '''Gets plant data, including validation'''
+def map_plant_to_recording(curr):
+    '''Returns a mapping of all plants to botanists'''
+    query = """
+        SELECT r.plant_id, r.recording_id, r.time, r.soil_moisture, r.temperature, r.botanist_id
+        FROM gamma.recordings r
+        JOIN gamma.plants p ON r.plant_id = p.plant_id
+    """
+    curr.execute(query)
+    rows = curr.fetchall()
+    return {row.plant_id: row.recording_id for row in rows}
 
 
-def get_last_watered(last_watered_entry: str | None) -> bool:
-    '''Given the last_watered entry, return the last_watered value to be input into the database.'''
+def map_plant_to_botanist(curr):
+    '''Returns a mapping of all plants to botanists'''
+    query = curr.execute("""
+        SELECT DISTINCT plant_id, botanist_id
+        FROM gamma.recordings
+    """)
+    curr.execute(query)
+    rows = curr.fetchall()
+    return {row.plant_id: row.botanist_id for row in rows}
+
+
+def get_current_botanist_properties(curr, botanist_id: int) -> dict | None:
+    """Returns the current data for a given plant_id or None if not found."""
+
+    try:
+        curr.execute(
+            "SELECT * FROM gamma.botanist WHERE botanist_id = ?", (botanist_id,))
+        result = curr.fetchone()
+
+    except Exception as err:
+        LOGGER.error(err)
+        return None
+
+    LOGGER.info(f'Botanist {botanist_id} has current state {result}')
+
+    return result
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
@@ -48,5 +184,16 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
     }
 
 
-def load_data_into_df(data: list[dict]):
-    '''Loads the data into a dataframe'''
+def upsert_botanist(botanist: dict) -> dict | None:
+    '''Given an extracted botanist, '''
+
+
+if __name__ == "__main__":
+    load_dotenv()
+    logger_setup("log_transform.log", "logs")
+
+    with get_connection() as conn:
+        curr = conn.cursor()
+        for i in range(0, 50):
+            get_current_plant_properties(curr, i)
+        curr.close()
