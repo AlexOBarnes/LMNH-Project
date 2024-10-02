@@ -236,6 +236,17 @@ def get_botanist_id(cursor, botanist_data: dict) -> int | None:
 
 def insert_new_botanist(cursor, botanist_data: dict) -> int:
     '''Given information about a botanist, insert a new botanist and return the new ID. '''
+    query = """
+    INSERT INTO gamma.botanists (first_name, last_name, email, phone)
+    VALUES (?, ?, ?, ?);
+    
+    SELECT SCOPE_IDENTITY();
+    """
+    cursor.execute(
+        query, (botanist_data['botanist_first_name'], botanist_data['botanist_last_name'], botanist_data['botanist_email'], botanist_data['botanist_phone']))
+
+    cursor.commit()
+    return cursor.fetchone()[0]
 
 
 if __name__ == "__main__":
