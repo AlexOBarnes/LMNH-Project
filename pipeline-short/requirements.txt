@@ -4,3 +4,4 @@ pytest
 requests
 aiohttp
 pyodbc
+python-dotenv

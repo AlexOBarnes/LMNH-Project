@@ -1,9 +1,14 @@
 '''Transfroms the extracted data'''
 import re
+import logging
+from logger import logger_setup
 from os import environ as ENV
 from datetime import datetime as dt
 from pyodbc import connect
 import pandas as pd
+from dotenv
+
+LOGGER = logging.getLogger(__name__)
 
 
 def get_connection():
@@ -62,3 +67,9 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
 
 def load_data_into_df(data: list[dict]):
     '''Loads the data into a dataframe'''
+
+
+if __name__ == "__main__":
+    load
+    logger_setup("log_transform.log", "logs")
+    get_connection()
