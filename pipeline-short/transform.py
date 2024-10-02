@@ -1,5 +1,4 @@
 '''Transfroms the extracted data'''
-import re
 import logging
 import pyodbc
 from logger import logger_setup
@@ -7,10 +6,15 @@ from os import environ as ENV
 from datetime import datetime as dt
 import pandas as pd
 
+from extract import extract
 
 from dotenv import load_dotenv
 
 LOGGER = logging.getLogger(__name__)
+
+
+def clean_extracted_data():
+    extract
 
 
 def get_connection() -> pyodbc.Connection | None:
@@ -47,12 +51,6 @@ def split_name(name: str) -> list[str]:
         return [names[0].strip(), " ".join(names[1:]).strip()]
     else:
         return [name, ""]
-
-
-def get_plant_data_query(curr, plant_dict: dict) -> dict | None:
-    '''Gets the query for updating or inserting the plant.'''
-    plant_id = plant_dict.get("plant_id")
-    name = plant_dict.get("name")
 
 
 def get_current_plant_properties(curr, plant_id: int) -> dict | None:
