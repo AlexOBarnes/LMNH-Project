@@ -12,7 +12,7 @@ from logger import logger_setup
 LOGGER = logging.getLogger(__name__)
 
 
-def get_connection() -> pyodbc.Connection | None:
+def get_connection():
     """Connects to an RDS database using pyodbc."""
 
     try:
@@ -193,23 +193,6 @@ def map_plant_to_most_recent_botanist(curr):
     rows = curr.fetchall()
 
     return {row[0].plant_id: row[1].botanist_id for row in rows}
-
-
-def get_current_botanist_properties(curr, botanist_id: int) -> dict | None:
-    """Returns the current data for a given plant_id or None if not found."""
-
-    try:
-        curr.execute(
-            "SELECT * FROM gamma.botanist WHERE botanist_id = ?", (botanist_id,))
-        result = curr.fetchone()
-
-    except Exception as err:
-        LOGGER.error(err)
-        return None
-
-    LOGGER.info(f'Botanist {botanist_id} has current state {result}')
-
-    return result
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
