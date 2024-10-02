@@ -17,6 +17,7 @@ def lambda_handler(event, context):
     db_password = ENV["DB_PASSWORD"]
     db_name = ENV["DB_NAME"]
     bucket_name = ENV["S3_BUCKET_NAME"]
+    bucket_folder_name = ENV["S3_FOLDER_PATH"]
 
     conn = connect_to_rds(db_host, db_user, db_password, db_name)
     if conn is None:
@@ -29,7 +30,7 @@ def lambda_handler(event, context):
     csv_buffer = transform_data_to_csv(plant_data)
 
     try:
-        upload_csv_to_s3(csv_buffer, bucket_name)
+        upload_csv_to_s3(csv_buffer, bucket_name, bucket_folder_name)
         return {"status_code": 200, "body": "CSV uploaded successfully."}
     except Exception as e:
         return {"status_code": 500, "body": f"Failed tp upload CSV to S3: {e}"}
