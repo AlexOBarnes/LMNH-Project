@@ -17,22 +17,30 @@ def get_connection():
                    f"PWD={ENV['DB_PASSWORD']}")
 
 
-def fetch_today_data(plant_id):
-    '''Fetches today's data for a specific plant.'''
+def get_today_data(selected_plants, metric):
+    """Fetches today's data for the selected plants."""
+    # Create a comma-separated string of plant names for SQL query
+    plants_placeholder = ', '.join(f"'{plant}'" for plant in selected_plants)
+
     query = f"""
-    SELECT time_taken, soil_moisture, temperature
+    SELECT time_taken AS time, {metric}
     FROM gamma.recordings
-    WHERE plant_id = {plant_id}
-      AND CAST(time_taken AS DATE) = CAST(GETDATE() AS DATE)
+    JOIN gamma.plants ON gamma.recordings.plant_id = gamma.plants.plant_id
+    JOIN gamma.plant_species ON gamma.plants.plant_species_id = gamma.plant_species.plant_species_id
+    WHERE gamma.plant_species.common_name IN ({plants_placeholder})
+    AND time_taken >= CAST(GETDATE() AS DATE)
     ORDER BY time_taken;
     """
+
     with get_connection() as conn:
-        return pd.read_sql(query, conn)
+        df = pd.read_sql(query, conn)
+
+    return df
 
 
-def fetch_historical_data(plant_id):
-    '''Fetches historical data from S3.'''
-    # Simulate reading from S3 for now. Replace with actual S3 reading logic.
-    historical_data = pd.read_csv(
-        f"s3://your-bucket-name/historical_plant_{plant_id}.csv")
-    return historical_data
+def get_plant_names():
+    """Gets stored plant names."""
+    query = "SELECT common_name FROM gamma.plant_species;"
+    with get_connection() as conn:
+        df = pd.read_sql(query, conn)
+    return df['common_name'].tolist()
