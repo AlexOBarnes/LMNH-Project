@@ -8,8 +8,8 @@ import pandas as pd
 
 def get_connection():
     '''Returns a connection to the RDS database'''
-    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                   f"SERVER={ENV['HOST']},{ENV['DB_PORT']};"
+    conn = connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                   f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
                    f"DATABASE={ENV['DB_NAME']};"
                    f"UID={ENV['DB_USER']};"
                    f"PWD={ENV['DB_PW']}")
