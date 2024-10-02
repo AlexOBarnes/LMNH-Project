@@ -36,38 +36,85 @@ def get_connection() -> pyodbc.Connection | None:
 def upsert_plants(curr, plant_data: list[dict]) -> None:
     """Inserts new plants into the database or updates existing ones."""
 
+    plant_to_botanist = map_plant_to_botanist()
+
+    plant_to_recording = map_plant_to_recording()
+
     for plant in plant_data:
 
         try:
             plant_id = plant["plant_id"]
-
         except:
-
             continue
 
-        last_watered = plant.get("last_watered", dt.isoformat(dt.now()))
-
-        last_watered = dt.strptime(last_watered, '%a, %d %b %Y %H:%M:%S %Z')
-
-        current_plant = get_current_plant_properties(curr, plant_id)
-
-        if not current_plant:
-            insert_new_plant(curr, plant)
-
-        curr_last_watered = current_plant["last_watering"]
-
-        if not curr_last_watered and not last_watered:
-            continue
-
-        if last_watered:
-            update_plant_watered(curr, plant_id, last_watered)
+        upsert_plant_table(curr, plant, plant_id)
 
         try:
             botanist = plant["botanist"]
         except:
             continue
 
+        try:
+            temp = plant["temperature"]
+            moisture = plant['soil_moisture']
+
+        except:
+            continue
+
+        recording_taken = plant.get("recording_taken")
+
+        recording_taken = dt.strptime(
+            recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
+
+        recording_id = plant_to_recording[plant]
+        botanist_id = plant_to_botanist[plant]
+
+        if not botanist_id:
+            insert_botanist(curr, plant)
+
+        if not recording_id:
+            insert_recording(curr, plant)
+
         botanist_data = get_botanist_data(botanist)
+
+        # TODO: process botanist
+
+
+def upsert_plant_table(curr, plant, plant_id) -> None:
+    '''Updates or inserts into the plant table'''
+
+    last_watered = plant.get("last_watered")
+
+    last_watered = dt.strptime(
+        last_watered, '%a, %d %b %Y %H:%M:%S %Z') if last_watered else dt.now()
+
+    current_plant = get_current_plant_properties(curr, plant_id)
+
+    if not current_plant:
+        insert_new_plant(curr, plant)
+
+    curr_last_watered = current_plant["last_watering"]
+
+    if not curr_last_watered and not last_watered:
+        return
+
+    if last_watered:
+        update_plant_watered(curr, plant_id, last_watered)
+
+
+def upsert_recordings_table(curr, plant, plant_id, plant_to_recordings, plant_to_botanists):
+    '''Update or insert into the recordings table'''
+
+
+def insert_recording(cursor, plant_data):
+    '''Insert a new recording'''
+
+
+def insert_botanist(cursor, plant_data):
+    '''Insert a new recording'''
+
+
+def update_recording(cursor, plant_id, recording_id)
 
 
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
