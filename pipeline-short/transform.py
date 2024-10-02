@@ -1,14 +1,13 @@
 '''Transfroms the extracted data'''
 import logging
-import pyodbc
-from logger import logger_setup
-from os import environ as ENV
 from datetime import datetime as dt
-import pandas as pd
+from os import environ as ENV
 
-from extract import extract
+import pyodbc
 
 from dotenv import load_dotenv
+
+from logger import logger_setup
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ def get_connection() -> pyodbc.Connection | None:
         LOGGER.info("Connection established to RDS")
         return connection
 
-    except pyodbc.Error as err:
+    except Exception as err:
         LOGGER.error(f"Error connecting to RDS %s: ", err)
         raise err
 
@@ -41,8 +40,9 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
         try:
             plant_id = plant["plant_id"]
-            name = plant['name']
+
         except:
+
             continue
 
         last_watered = plant.get("last_watered", dt.isoformat(dt.now()))
@@ -58,8 +58,16 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
         if not curr_last_watered and not last_watered:
             continue
-        elif last_watered:
+
+        if last_watered:
             update_plant_watered(curr, plant_id, last_watered)
+
+        try:
+            botanist = plant["botanist"]
+        except:
+            continue
+
+        botanist_data = get_botanist_data(botanist)
 
 
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
@@ -142,7 +150,7 @@ def map_plant_to_botanist(curr):
     return {row.plant_id: row.botanist_id for row in rows}
 
 
-def get_current_botanist_properties(cursor, botanist_id: int) -> dict | None:
+def get_current_botanist_properties(curr, botanist_id: int) -> dict | None:
     """Returns the current data for a given plant_id or None if not found."""
 
     try:
@@ -174,6 +182,10 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
         "botanist_last_name": names[1],
         "botanist_phone": botanist_data.get("phone", None)
     }
+
+
+def upsert_botanist(botanist: dict) -> dict | None:
+    '''Given an extracted botanist, '''
 
 
 if __name__ == "__main__":
