@@ -1,6 +1,6 @@
 # Short-Term Data Storage Pipeline
 
-## Setup
+## Setup: Running locally
 
 1. `python3 -m venv venv` to create a virtual environment.
 
