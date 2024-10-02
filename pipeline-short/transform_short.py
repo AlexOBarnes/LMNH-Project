@@ -36,7 +36,10 @@ def get_connection():
 
 
 def upsert_plants(curr, plant_data: list[dict]) -> None:
-    """Inserts new plants into the database or updates existing ones."""
+    """Inserts new plants into the database or updates existing ones with 
+    a new watering time. 
+
+    If a plant has a new recording, this is added."""
 
     plant_to_botanist = map_plant_to_most_recent_botanist(curr)
 
@@ -110,7 +113,9 @@ def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_
         recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
 
     botanist_details = get_botanist_data(plant_data["botanist"])
+
     existing_id = get_botanist_id(botanist_details, botanist_details)
+
     if botanist_details is None and last_botanist_id is not None:
 
         botanist_id = last_botanist_id
