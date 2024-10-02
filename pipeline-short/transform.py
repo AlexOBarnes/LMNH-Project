@@ -1,11 +1,18 @@
 '''Transfroms the extracted data'''
 import re
+from os import environ as ENV
+from datetime import datetime as dt
+from pyodbc import connect
 import pandas as pd
 
 
 def get_connection():
-    '''Retrieves connection to the RDS database'''
-    
+    '''Returns a connection to the RDS database'''
+    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                   f"SERVER={ENV['HOST']},{ENV['DB_PORT']};"
+                   f"DATABASE={ENV['DB_NAME']};"
+                   f"UID={ENV['DB_USER']};"
+                   f"PWD={ENV['DB_PW']}")
 
 
 def is_valid_email(email: str) -> bool:
@@ -16,9 +23,9 @@ def is_valid_email(email: str) -> bool:
 def split_name(name: str) -> list[str]:
     '''Return the first and last name'''
 
-    names = name.split(" ")
+    names = name.strip().split(" ")
     if len(names) > 1:
-        return [names[0], " ".join(names[1:])]
+        return [names[0].strip(), " ".join(names[1:]).strip()]
     else:
         return [name, ""]
 
