@@ -49,6 +49,7 @@ variable "SHORT_IMAGE_URI" {
 variable "LONG_IMAGE_URI" {
     type = string
 }
-variable "DASH_IMAGE_URI" {
+
+variable "CHECKER_URI" {
     type = string
 }

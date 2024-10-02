@@ -12,4 +12,4 @@ COPY sl_queries.py .
 COPY pages/about.py ./pages
 COPY pages/plants.py ./pages
 
-CMD ["streamlit", "run", "dashboard.py"]
+CMD ["streamlit", "run", "dashboard.py","--server.port=8501"]
