@@ -17,7 +17,7 @@ st.markdown("<h1 style='color: #e3298c;'>ðŸŒ± Monitoring Plant Health Metrics ðŸ
 st.write("""
 This page provides an overview of the health metrics recorded for the plants in the conservatory, including soil moisture and temperature.
          
-The data is collected every minute and visualized to help museum staff monitor plant conditions in real-time.
+The data is collected every minute and visualised to help museum staff monitor plant conditions in real-time.
          
 Choose the plants to observe from the menu on the sidebar.
 """)
