@@ -1,7 +1,7 @@
 '''This module creates test data and loads it onto the long term storage S3'''
 from os import environ as ENV
 import argparse
-from datetime import datetime as dt
+from datetime import datetime, timedelta
 from io import StringIO
 import random
 from dotenv import load_dotenv
@@ -25,12 +25,12 @@ def create_plant_dataframe(rows:int) -> pd.DataFrame:
     '''Returns a pandas dataframe containing fake data'''
     data = []
     for i in range(1, rows+1):
-        timestamp = dt.now()
+        timestamp = datetime.now()+timedelta(minutes=i)
         moisture= round(random.uniform(0.0, 100.0), 3)
         temperature = round(random.uniform(0.0, 40.0), 3)
         plant = random.randint(1, 3)
         botanist = random.randint(1, 3)
-        data.append([i, timestamp.strftime('%y-%m-%d %H:%M:%S'),
+        data.append([i, timestamp,
                     moisture, temperature, plant, botanist])
 
 
@@ -44,7 +44,7 @@ def upload_data(data: pd.DataFrame) -> None:
                         aws_access_key_id=ENV["AWS_ACCESS_KEY"],
                         aws_secret_access_key=ENV["AWS_SECRET_ACCESS_KEY"])
 
-    date = dt.now().strftime('%d-%m-%Y')
+    date = datetime.now().strftime('%d-%m-%Y')
 
     csv_file = StringIO()
     data.to_csv(csv_file, index=False)
