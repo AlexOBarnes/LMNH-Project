@@ -58,8 +58,20 @@ def get_plant_data(plant_dict: dict):
     '''Gets plant data, including validation.'''
 
 
-def get_last_watered(last_watered_entry: str | None) -> bool:
-    '''Given the last_watered entry, return the last_watered value to be input into the database.'''
+def get_current_last_watered(cursor, plant_id: int, last_watered_entry: str | None) -> None:
+    """Returns the current last_watering entry"""
+
+    try:
+        curr.execute(
+            "SELECT last_watering FROM gamma.plants WHERE plant_id = ?", (plant_id,))
+        result = curr.fetchone()
+    except Exception as err:
+        LOGGER.error(err)
+        return
+
+    LOGGER.info(f'Plant {plant_id} has last_watering {result}')
+
+    return result
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
@@ -86,4 +98,9 @@ def load_data_into_df(data: list[dict]):
 if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
-    get_connection()
+
+    with get_connection() as conn:
+        curr = conn.cursor()
+        for i in range(0, 50):
+            get_current_last_watered(curr, i, last_watered_entry=None)
+        curr.close()
