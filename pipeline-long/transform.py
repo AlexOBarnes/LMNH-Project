@@ -1,5 +1,8 @@
-import csv
+"""A file to transform the extracted plant data from the RDS into a 
+CSV file to be loaded into the S3 bucket."""
+
 from io import StringIO
+import pandas as pd
 
 
 def transform_data_to_csv(data: list[dict]) -> StringIO:
@@ -7,9 +10,11 @@ def transform_data_to_csv(data: list[dict]) -> StringIO:
 
     csv_buffer = StringIO()
 
-    writer = csv.DictWriter(csv_buffer, fieldnames=data[0].keys())
-    writer.writeheader()
-    writer.writerows(data)
+    if not data:
+        return "id,name,moisture\n"
+
+    df = pd.DataFrame(data)
+    df.to_csv(csv_buffer, index=False)
 
     csv_buffer.seek(0)
 

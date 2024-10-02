@@ -3,3 +3,4 @@ pyodbc
 pytest
 pylint
 boto3
+pandas
