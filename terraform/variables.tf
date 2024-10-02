@@ -46,7 +46,9 @@ variable "SUBNET_ID" {
 variable "SHORT_IMAGE_URI" {
     type = string
 }
-
 variable "LONG_IMAGE_URI" {
+    type = string
+}
+variable "DASH_IMAGE_URI" {
     type = string
 }
