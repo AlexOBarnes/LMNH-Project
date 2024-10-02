@@ -5,3 +5,4 @@ requests
 aiohttp
 pyodbc
 python-dotenv
+pymssql

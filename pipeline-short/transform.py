@@ -4,9 +4,10 @@ import logging
 from logger import logger_setup
 from os import environ as ENV
 from datetime import datetime as dt
-from pyodbc import connect
 import pandas as pd
-from dotenv
+
+from pymssql import connect
+from dotenv import load_dotenv
 
 LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ def get_connection():
                    f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
                    f"DATABASE={ENV['DB_NAME']};"
                    f"UID={ENV['DB_USER']};"
-                   f"PWD={ENV['DB_PW']}")
+                   f"PWD={ENV['DB_PASSWORD']}")
 
 
 def is_valid_email(email: str) -> bool:
@@ -70,6 +71,6 @@ def load_data_into_df(data: list[dict]):
 
 
 if __name__ == "__main__":
-    load
+    load_dotenv()
     logger_setup("log_transform.log", "logs")
     get_connection()
