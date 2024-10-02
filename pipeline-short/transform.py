@@ -47,18 +47,44 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
         last_watered = plant.get("last_watered", dt.isoformat(dt.now()))
 
-        last_watered = dt.strptime(last_watered,)
+        last_watered = dt.strptime(last_watered, '%a, %d %b %Y %H:%M:%S %Z')
 
         current_plant = get_current_plant_properties(curr, plant_id)
 
         if not current_plant:
             insert_new_plant(curr, plant)
 
-        curr_last_watered = pd.to_datetime(current_plant["last_watering"])
+        curr_last_watered = current_plant["last_watering"]
+
+        if not curr_last_watered and not last_watered:
+            continue
+        elif last_watered:
+            update_plant_watered(curr, plant_id, last_watered)
+
+
+def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
+    '''Update a plant's last_watering entry'''
+
+    cursor.execute(
+        """
+            UPDATE gamma.plants
+            SET last_watering = ?
+            WHERE plant_id = ?
+            """,
+        (new_last_watered, plant_id_to_update)
+    )
 
 
 def insert_new_plant(cursor, plant_dict):
     '''Using a plant dictionary, inserts a new plant.'''
+    cursor.execute(
+        """
+            INSERT INTO gamma.plants (plant_id, name, last_watering)
+            VALUES (?, ?, ?)
+            """,
+        (plant_dict['plant_id'], plant_dict['name'],
+         plant_dict.get('last_watered'))
+    )
 
 
 def is_valid_email(email: str) -> bool:
