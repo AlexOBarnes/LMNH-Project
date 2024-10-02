@@ -42,18 +42,23 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
         try:
             plant_id = plant["plant_id"]
             name = plant['name']
-            recording_taken = pd.to_datetime(plant['recording_taken'])
-            soil_moisture = plant['soil_moisture']
-            temperature = plant['temperature']
-            botanist_dict = plant['botanist']
         except:
             continue
 
         last_watered = plant.get("last_watered", dt.isoformat(dt.now()))
 
-        last_watered = pd.to_datetime(plant['last_watered'])
+        last_watered = dt.strptime(last_watered,)
 
         current_plant = get_current_plant_properties(curr, plant_id)
+
+        if not current_plant:
+            insert_new_plant(curr, plant)
+
+        curr_last_watered = pd.to_datetime(current_plant["last_watering"])
+
+
+def insert_new_plant(cursor, plant_dict):
+    '''Using a plant dictionary, inserts a new plant.'''
 
 
 def is_valid_email(email: str) -> bool:
