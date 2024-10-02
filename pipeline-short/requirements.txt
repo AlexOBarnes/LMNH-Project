@@ -3,6 +3,5 @@ pylint
 pytest
 requests
 aiohttp
-pyodbc
 python-dotenv
-pymssql
+pyodbc

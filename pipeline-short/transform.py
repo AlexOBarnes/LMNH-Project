@@ -1,24 +1,37 @@
 '''Transfroms the extracted data'''
 import re
 import logging
+import pyodbc
 from logger import logger_setup
 from os import environ as ENV
 from datetime import datetime as dt
 import pandas as pd
 
-from pymssql import connect
+
 from dotenv import load_dotenv
 
 LOGGER = logging.getLogger(__name__)
 
 
-def get_connection():
-    '''Returns a connection to the RDS database'''
-    conn = connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                   f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
-                   f"DATABASE={ENV['DB_NAME']};"
-                   f"UID={ENV['DB_USER']};"
-                   f"PWD={ENV['DB_PASSWORD']}")
+def get_connection() -> pyodbc.Connection | None:
+    """Connects to an RDS database using pyodbc."""
+
+    try:
+        connection_string = (
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"SERVER={ENV["DB_HOST"]};"
+            f"DATABASE={ENV["DB_NAME"]};"
+            f"UID={ENV["DB_USER"]};"
+            f"PWD={ENV["DB_PASSWORD"]}"
+        )
+
+        connection = pyodbc.connect(connection_string)
+        LOGGER.info("Connection established to RDS")
+        return connection
+
+    except pyodbc.Error as e:
+        LOGGER.error(f"Error connecting to RDS %s: ", e,)
+        return None
 
 
 def is_valid_email(email: str) -> bool:
