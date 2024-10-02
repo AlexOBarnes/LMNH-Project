@@ -52,6 +52,8 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
                 "Not enough information to insert a new recording.")
             continue
 
+        last_botanist = plant_to_botanist[plant_id]
+
 
 def upsert_plant_table(curr, plant, plant_id) -> None:
     '''Updates or inserts into the plant table'''
@@ -59,7 +61,7 @@ def upsert_plant_table(curr, plant, plant_id) -> None:
     last_watered = plant.get("last_watered")
 
     last_watered = dt.strptime(
-        last_watered, '%a, %d %b %Y %H:%M:%S %Z') if last_watered else dt.now()
+        last_watered, '%a, %d %b %Y %H:%M:%S %Z') if last_watered else None
 
     current_plant = get_current_plant_properties(curr, plant_id)
 
@@ -75,7 +77,7 @@ def upsert_plant_table(curr, plant, plant_id) -> None:
         update_plant_watered(curr, plant_id, last_watered)
 
 
-def insert_into_recordings_table(curr, plant, plant_id, plant_to_botanists):
+def insert_into_recordings_table(curr, plant, plant_id, plant_to_botanists, plant_):
     '''Insert into the recordings table'''
 
     recording_taken = plant.get("recording_taken")
@@ -84,10 +86,6 @@ def insert_into_recordings_table(curr, plant, plant_id, plant_to_botanists):
         recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
 
     botanist_details = get_botanist_data(plant["botanist"])
-
-
-def insert_botanist(cursor, plant_data):
-    '''Insert a new recording'''
 
 
 def update_recording(cursor, plant_id, recording_id)
