@@ -29,9 +29,9 @@ def get_connection() -> pyodbc.Connection | None:
         LOGGER.info("Connection established to RDS")
         return connection
 
-    except pyodbc.Error as e:
-        LOGGER.error(f"Error connecting to RDS %s: ", e,)
-        return None
+    except pyodbc.Error as err:
+        LOGGER.error(f"Error connecting to RDS %s: ", err)
+        raise err
 
 
 def is_valid_email(email: str) -> bool:
