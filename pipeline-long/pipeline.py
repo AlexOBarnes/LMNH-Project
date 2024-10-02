@@ -12,13 +12,13 @@ from load import upload_csv_to_s3
 def lambda_handler(event, context):
     """AWS Lambda handler function for running the ETL pipeline."""
 
-    DB_HOST = ENV["DB_HOST"]
-    DB_USER = ENV["DB_USER"]
-    DB_PASSWORD = ENV["DB_PASSWORD"]
-    DB_NAME = ENV["DB_NAME"]
-    S3_BUCKET_NAME = ENV["S3_BUCKET_NAME"]
+    db_host = ENV["DB_HOST"]
+    db_user = ENV["DB_USER"]
+    db_password = ENV["DB_PASSWORD"]
+    db_name = ENV["DB_NAME"]
+    bucket_name = ENV["S3_BUCKET_NAME"]
 
-    conn = connect_to_rds(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
+    conn = connect_to_rds(db_host, db_user, db_password, db_name)
     if conn is None:
         return {"status_code": 500, "message": "Failed to connect to RDS"}
 
@@ -29,7 +29,7 @@ def lambda_handler(event, context):
     csv_buffer = transform_data_to_csv(plant_data)
 
     try:
-        upload_csv_to_s3(csv_buffer, S3_BUCKET_NAME)
+        upload_csv_to_s3(csv_buffer, bucket_name)
         return {"status_code": 200, "body": "CSV uploaded successfully."}
     except Exception as e:
         return {"status_code": 500, "body": f"Failed tp upload CSV to S3: {e}"}
