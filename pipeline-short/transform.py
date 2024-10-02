@@ -3,11 +3,13 @@ import logging
 from datetime import datetime as dt
 from os import environ as ENV
 
+
 import pyodbc
 
 from dotenv import load_dotenv
 
 from logger import logger_setup
+from extract import extract
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +38,8 @@ def get_connection():
 def upsert_plants(curr, plant_data: list[dict]) -> None:
     """Inserts new plants into the database or updates existing ones."""
 
-    plant_to_botanist = map_plant_to_most_recent_botanist()
+    plant_to_botanist = map_plant_to_most_recent_botanist(curr)
+
     recordings_to_insert = []
     for plant in plant_data:
 
@@ -47,7 +50,9 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
         upsert_plant_table(curr, plant, plant_id)
 
-        if not (plant.get('soil_moisture') or plant.get("temperature")) or not plant.get("botanist"):
+        if not (
+                plant.get('soil_moisture') or plant.get("temperature")
+        ) or not plant.get("botanist"):
             LOGGER.info(
                 "Not enough information to insert a new recording.")
             continue
@@ -105,15 +110,15 @@ def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_
         recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
 
     botanist_details = get_botanist_data(plant_data["botanist"])
-
+    existing_id = get_botanist_id(botanist_details, botanist_details)
     if botanist_details is None and last_botanist_id is not None:
 
         botanist_id = last_botanist_id
 
-    elif get_botanist_id(botanist_details):
-        botanist_id = get_botanist_id(curr, botanist_details)
+    elif existing_id:
+        botanist_id = existing_id
     else:
-        botanist_id = insert_new_botanist(curr, botanist_details)
+        botanist_id = insert_new_botanist(cursor, botanist_details)
 
     return (recording_taken, plant_data["soil_moisture"], plant_data["temperature"], plant_id, botanist_id)
 
@@ -154,8 +159,8 @@ def split_name(name: str) -> list[str]:
     names = name.strip().split(" ")
     if len(names) > 1:
         return [names[0].strip(), " ".join(names[1:]).strip()]
-    else:
-        return [name, ""]
+
+    return [name, ""]
 
 
 def get_current_plant_properties(curr, plant_id: int) -> dict | None:
@@ -171,12 +176,10 @@ def get_current_plant_properties(curr, plant_id: int) -> dict | None:
         LOGGER.error(err)
         return None
 
-    LOGGER.info(f'Plant {plant_id} has current state {result}')
-
     return result
 
 
-def map_plant_to_most_recent_botanist(curr):
+def map_plant_to_most_recent_botanist(cursor):
     '''Returns a mapping of all plants to the most recent botanist'''
 
     query = """SELECT r.plant_id, r.botanist_id
@@ -188,9 +191,9 @@ def map_plant_to_most_recent_botanist(curr):
     ) recent ON r.plant_id = recent.plant_id AND r.time = recent.max_time
     """
 
-    curr.execute(query)
+    cursor.execute(query)
 
-    rows = curr.fetchall()
+    rows = cursor.fetchall()
 
     return {row[0].plant_id: row[1].botanist_id for row in rows}
 
@@ -252,8 +255,11 @@ if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
 
+    data = extract()
+
     with get_connection() as conn:
-        curr = conn.cursor()
-        for i in range(0, 50):
-            get_current_plant_properties(curr, i)
-        curr.close()
+
+        conn_cursor = conn.cursor()
+        upsert_plants(conn_cursor, data)
+
+        conn_cursor.close()
