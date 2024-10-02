@@ -4,6 +4,10 @@ provider "aws"{
     secret_key = var.AWS_SECRET_KEY
 }
 
+data "aws_vpc" "c13-vpc" {
+  id = var.VPC_ID
+}
+
 data "aws_subnet" "c13-public-subnet" {
   id = var.SUBNET_ID
 }
@@ -34,8 +38,14 @@ data  "aws_iam_policy_document" "schedule-trust-policy" {
 data "aws_iam_policy_document" "schedule-permissions-policy" {
   statement {
     effect = "Allow"
-    resources = [aws_lambda_function.short_pipeline.arn, aws_lambda_function.long_pipeline.arn]
-    actions = ["lambda:InvokeFunction"]
+    resources = [
+      aws_sfn_state_machine.plant_state_function.arn,
+      aws_lambda_function.long_pipeline.arn
+    ]
+    actions = [
+      "states:StartExecution",
+      "lambda:InvokeFunction"
+    ]
   }
 
   statement {
@@ -51,9 +61,11 @@ data "aws_iam_policy_document" "schedule-permissions-policy" {
   }
 }
 
+
 resource "aws_security_group" "dash_security_group" {
   name        = "c13-wshao-dashboard-security-group"
   description = "Security group to allow TCP traffic on port 8501"
+  vpc_id      = data.aws_vpc.c13-vpc.id
 
   ingress {
     description      = "Allow TCP traffic on port 8501"
@@ -145,7 +157,7 @@ resource "aws_ecs_service" "dashboard_service" {
 
     network_configuration {
         subnets          = [data.aws_subnet.c13-public-subnet.id]
-        security_groups  = [aws_security_group.security_group.id]
+        security_groups  = [aws_security_group.dash_security_group.id]
         assign_public_ip = true
     }
 }
@@ -166,7 +178,7 @@ resource "aws_scheduler_schedule" "minute" {
   }
   schedule_expression = "cron(* * * * ? *)"
   target {
-    arn = aws_lambda_function.short_pipeline.arn
+    arn = aws_sfn_state_machine.plant_state_function.arn
     role_arn = aws_iam_role.schedule-role.arn
   }
 }
@@ -178,7 +190,7 @@ resource "aws_scheduler_schedule" "daily" {
   }
   schedule_expression = "cron(0 0 * * ? *)"
   target {
-    arn = aws_lambda_function.long_pipeline.arn
+    arn = aws_lambda_function.long_pipeline.arn 
     role_arn = aws_iam_role.schedule-role.arn
   }
 }
@@ -216,6 +228,8 @@ resource "aws_lambda_function" "short_pipeline" {
       DB_NAME           = var.DB_NAME
       DB_USER           = var.DB_USER
       DB_PASSWORD       = var.DB_PW
+      MY_AWS_ACCESS_KEY = var.AWS_ACCESS_KEY
+      MY_AWS_SECRET_KEY = var.AWS_SECRET_KEY
     }
   }
 }
@@ -234,6 +248,8 @@ resource "aws_lambda_function" "long_pipeline" {
       DB_USER     = var.DB_USER
       DB_PASSWORD = var.DB_PW
       DB_BUCKET   = var.BUCKET
+      MY_AWS_ACCESS_KEY = var.AWS_ACCESS_KEY
+      MY_AWS_SECRET_KEY = var.AWS_SECRET_KEY
     }
   }
 }
@@ -252,6 +268,8 @@ resource "aws_lambda_function" "plant_checker" {
       DB_USER     = var.DB_USER
       DB_PASSWORD = var.DB_PW
       DB_BUCKET   = var.BUCKET
+      MY_AWS_ACCESS_KEY = var.AWS_ACCESS_KEY
+      MY_AWS_SECRET_KEY = var.AWS_SECRET_KEY
     }
   }
 }
@@ -301,7 +319,7 @@ resource "aws_iam_role_policy_attachment" "attach_step_function_policy" {
   policy_arn = aws_iam_policy.step_function_policy.arn
 }
 
-resource "aws_sfn_state_machine" "step_function" {
+resource "aws_sfn_state_machine" "plant_state_function" {
   name     = "c13-wshao-step-function"
   role_arn = aws_iam_role.step_function_role.arn
   definition = jsonencode({
@@ -311,7 +329,6 @@ resource "aws_sfn_state_machine" "step_function" {
       "InvokeShortPipeline": {
         "Type": "Task",
         "Resource": aws_lambda_function.short_pipeline.arn,
-        "End": false,
         "Next": "InvokePlantChecker"
       },
       "InvokePlantChecker": {
