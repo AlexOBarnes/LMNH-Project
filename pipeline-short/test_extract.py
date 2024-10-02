@@ -4,7 +4,7 @@
 from unittest.mock import patch
 import pytest
 
-from extract import get_url, validate_response, get_num_plants
+from extract_short import get_url, validate_response, get_num_plants
 
 
 MOCK_BASE_URL = "https://api.example.com"

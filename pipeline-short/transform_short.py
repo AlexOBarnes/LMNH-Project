@@ -9,7 +9,7 @@ import pyodbc
 from dotenv import load_dotenv
 
 from logger import logger_setup
-from extract import extract
+from extract_short import extract
 
 LOGGER = logging.getLogger(__name__)
 

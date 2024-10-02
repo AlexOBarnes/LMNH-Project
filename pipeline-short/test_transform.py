@@ -1,6 +1,6 @@
 # pylint: skip-file
 import pytest
-from transform import split_name
+from transform_short import split_name
 
 
 def test_split_name_standard():
