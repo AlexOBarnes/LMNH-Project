@@ -36,9 +36,7 @@ def get_connection() -> pyodbc.Connection | None:
 def upsert_plants(curr, plant_data: list[dict]) -> None:
     """Inserts new plants into the database or updates existing ones."""
 
-    plant_to_botanist = map_plant_to_botanist()
-
-    plant_to_recording = map_plant_to_recording()
+    plant_to_botanist = map_plant_to_most_recent_botanist()
 
     for plant in plant_data:
 
@@ -49,35 +47,10 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
         upsert_plant_table(curr, plant, plant_id)
 
-        try:
-            botanist = plant["botanist"]
-        except:
+        if not (plant.get('soil_moisture') and plant.get("temperature")) or not plant.get("botanist"):
+            LOGGER.info(
+                "Not enough information to insert a new recording.")
             continue
-
-        try:
-            temp = plant["temperature"]
-            moisture = plant['soil_moisture']
-
-        except:
-            continue
-
-        recording_taken = plant.get("recording_taken")
-
-        recording_taken = dt.strptime(
-            recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
-
-        recording_id = plant_to_recording[plant]
-        botanist_id = plant_to_botanist[plant]
-
-        if not botanist_id:
-            insert_botanist(curr, plant)
-
-        if not recording_id:
-            insert_recording(curr, plant)
-
-        botanist_data = get_botanist_data(botanist)
-
-        # TODO: process botanist
 
 
 def upsert_plant_table(curr, plant, plant_id) -> None:
@@ -102,12 +75,15 @@ def upsert_plant_table(curr, plant, plant_id) -> None:
         update_plant_watered(curr, plant_id, last_watered)
 
 
-def upsert_recordings_table(curr, plant, plant_id, plant_to_recordings, plant_to_botanists):
-    '''Update or insert into the recordings table'''
+def insert_into_recordings_table(curr, plant, plant_id, plant_to_botanists):
+    '''Insert into the recordings table'''
 
+    recording_taken = plant.get("recording_taken")
 
-def insert_recording(cursor, plant_data):
-    '''Insert a new recording'''
+    recording_taken = dt.strptime(
+        recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
+
+    botanist_details = get_botanist_data(plant["botanist"])
 
 
 def insert_botanist(cursor, plant_data):
@@ -174,27 +150,23 @@ def get_current_plant_properties(curr, plant_id: int) -> dict | None:
     return result
 
 
-def map_plant_to_recording(curr):
-    '''Returns a mapping of all plants to botanists'''
-    query = """
-        SELECT r.plant_id, r.recording_id, r.time, r.soil_moisture, r.temperature, r.botanist_id
-        FROM gamma.recordings r
-        JOIN gamma.plants p ON r.plant_id = p.plant_id
-    """
-    curr.execute(query)
-    rows = curr.fetchall()
-    return {row.plant_id: row.recording_id for row in rows}
+def map_plant_to_most_recent_botanist(curr):
+    '''Returns a mapping of all plants to the most recent botanist'''
 
-
-def map_plant_to_botanist(curr):
-    '''Returns a mapping of all plants to botanists'''
-    query = curr.execute("""
-        SELECT DISTINCT plant_id, botanist_id
+    query = """SELECT r.plant_id, r.botanist_id
+    FROM gamma.recordings r
+    JOIN (
+        SELECT plant_id, MAX(time) AS max_time
         FROM gamma.recordings
-    """)
+        GROUP BY plant_id
+    ) recent ON r.plant_id = recent.plant_id AND r.time = recent.max_time
+    """
+
     curr.execute(query)
+
     rows = curr.fetchall()
-    return {row.plant_id: row.botanist_id for row in rows}
+
+    return {row[0].plant_id: row[1].botanist_id for row in rows}
 
 
 def get_current_botanist_properties(curr, botanist_id: int) -> dict | None:
@@ -229,10 +201,6 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
         "botanist_last_name": names[1],
         "botanist_phone": botanist_data.get("phone", None)
     }
-
-
-def upsert_botanist(botanist: dict) -> dict | None:
-    '''Given an extracted botanist, '''
 
 
 if __name__ == "__main__":
