@@ -5,7 +5,6 @@ from datetime import datetime as dt
 import requests as req
 from pyodbc import connect
 from dotenv import load_dotenv
-import pandas as pd
 
 BASE_URL = "https://data-eng-plants-api.herokuapp.com/plants/"
 
@@ -59,7 +58,7 @@ def find_species_id(name: list) -> int:
     return None
 
 
-def extract_plant_data(plant: dict) -> dict:
+def extract_plant_data(plant: dict) -> list:
     '''Takes in the response and returns a cleaned dict'''
     return [plant.get('plant_id', None),
             extract_date(plant.get('last_watered', None)),
@@ -67,7 +66,7 @@ def extract_plant_data(plant: dict) -> dict:
             find_species_id(plant.get('name', None))]
 
 
-def get_plant_data() -> pd.DataFrame:
+def get_plant_data() -> list[list]:
     '''Extracts data from endpoints'''
     data = []
     for i in range(50):
