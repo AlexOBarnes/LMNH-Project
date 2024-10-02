@@ -14,3 +14,10 @@ class TestTransformDataToCSV:
         csv_file_like = transform_data_to_csv(data)
 
         assert csv_file_like.getvalue() == expected_output
+
+    def test_empty_input(self):
+        data = []
+        expected_output = "id,name,moisture\r\n"
+        csv_file_file = transform_data_to_csv(data)
+
+        assert csv_file_file.getvalue() == expected_output
