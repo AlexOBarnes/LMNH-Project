@@ -29,7 +29,7 @@ def test_validate_response_invalid():
     assert validate_response(response) is False
 
 
-def test_validate_response_():
+def test_validate_response():
     """Test for a response that's valid."""
     response = {
         "botanist": "value1",
