@@ -49,27 +49,65 @@ def split_name(name: str) -> list[str]:
         return [name, ""]
 
 
-def split_data(plant_data: dict) -> dict[dict]:
-    '''Splits the plant data into dictionaries for different tables'''
-    return {"botanist": get_botanist_data(plant_data["botanist"]), "plant": get_plant_data(plant_data)}
+def get_plant_data_query(curr, plant_dict: dict) -> dict | None:
+    '''Gets the query for updating or inserting the plant.'''
+    plant_id = plant_dict.get("plant_id")
+    name = plant_dict.get("name")
 
 
-def get_plant_data(plant_dict: dict):
-    '''Gets plant data, including validation.'''
-
-
-def get_current_last_watered(cursor, plant_id: int, last_watered_entry: str | None) -> None:
-    """Returns the current last_watering entry"""
+def get_current_plant_properties(curr, plant_id: int) -> dict | None:
+    """Returns the current data for a given plant_id or None if not found."""
 
     try:
         curr.execute(
-            "SELECT last_watering FROM gamma.plants WHERE plant_id = ?", (plant_id,))
+            "SELECT location_id, last_watering,plant_species_id FROM gamma.plants WHERE plant_id = ?", (plant_id,))
         result = curr.fetchone()
+
     except Exception as err:
         LOGGER.error(err)
-        return
+        return None
 
-    LOGGER.info(f'Plant {plant_id} has last_watering {result}')
+    LOGGER.info(f'Plant {plant_id} has current state {result}')
+
+    return result
+
+
+def map_plant_to_recording(curr):
+    '''Returns a mapping of all plants to botanists'''
+    query = """
+        SELECT r.plant_id, r.recording_id, r.time, r.soil_moisture, r.temperature, r.botanist_id
+        FROM gamma.recordings r
+        JOIN gamma.plants p ON r.plant_id = p.plant_id
+    """
+    curr.execute(query)
+    rows = curr.fetchall()
+    return {row.plant_id: row.recording_id for row in rows}
+
+
+def map_plant_to_botanist(curr):
+    '''Returns a mapping of all plants to botanists'''
+    query = curr.execute("""
+        SELECT DISTINCT plant_id, botanist_id
+        FROM gamma.recordings
+    """)
+    curr.execute(query)
+    rows = curr.fetchall()
+    return {row.plant_id: row.botanist_id for row in rows}
+
+
+def get_current_botanist_properties(cursor, botanist_id: int) -> dict | None:
+    """Returns the current data for a given plant_id or None if not found."""
+
+    try:
+        curr.execute(
+            "SELECT * FROM gamma.botanist WHERE botanist_id = ?", (botanist_id,))
+        result = curr.fetchone()
+
+    except Exception as err:
+        LOGGER.error(err)
+        return None
+
+    LOGGER.info(f'Botanist {botanist_id} has current state {result}')
 
     return result
 
@@ -91,10 +129,6 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
     }
 
 
-def load_data_into_df(data: list[dict]):
-    '''Loads the data into a dataframe'''
-
-
 if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
@@ -102,5 +136,5 @@ if __name__ == "__main__":
     with get_connection() as conn:
         curr = conn.cursor()
         for i in range(0, 50):
-            get_current_last_watered(curr, i, last_watered_entry=None)
+            get_current_plant_properties(curr, i)
         curr.close()
