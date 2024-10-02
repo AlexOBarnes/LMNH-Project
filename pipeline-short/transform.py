@@ -57,6 +57,22 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
         recordings_to_insert.append(get_new_recording_table_entry(
             curr, plant_id, plant, last_botanist))
 
+    insert_new_recordings(curr, recordings_to_insert)
+
+
+def insert_new_recordings(cursor, recordings: list[tuple]):
+    '''Given a list of tuples of the form
+      (time, soil_moisture, temperature, plant_id, botanist_id)
+      insert the new recordings into the database.'''
+
+    cursor.execute_many("""
+    INSERT INTO gamma.recordings
+        (time, soil_moisture,temperature,plant_id,botanist_id)
+    VALUES 
+        (?,?,?,?,?)
+    """, recordings)
+    cursor.commit()
+
 
 def upsert_plant_table(curr, plant, plant_id) -> None:
     '''Updates or inserts into the plant table'''
