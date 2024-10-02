@@ -53,3 +53,6 @@ variable "LONG_IMAGE_URI" {
 variable "CHECKER_URI" {
     type = string
 }
+variable "VPC_ID" {
+    type = string
+}
