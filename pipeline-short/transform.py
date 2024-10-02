@@ -37,7 +37,7 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
     """Inserts new plants into the database or updates existing ones."""
 
     plant_to_botanist = map_plant_to_most_recent_botanist()
-
+    recordings_to_insert = []
     for plant in plant_data:
 
         try:
@@ -47,12 +47,15 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
         upsert_plant_table(curr, plant, plant_id)
 
-        if not (plant.get('soil_moisture') and plant.get("temperature")) or not plant.get("botanist"):
+        if not (plant.get('soil_moisture') or plant.get("temperature")) or not plant.get("botanist"):
             LOGGER.info(
                 "Not enough information to insert a new recording.")
             continue
 
-        last_botanist = plant_to_botanist[plant_id]
+        last_botanist = plant_to_botanist.get(plant_id)
+
+        recordings_to_insert.append(get_new_recording_table_entry(
+            curr, plant_id, plant, last_botanist))
 
 
 def upsert_plant_table(curr, plant, plant_id) -> None:
@@ -77,18 +80,26 @@ def upsert_plant_table(curr, plant, plant_id) -> None:
         update_plant_watered(curr, plant_id, last_watered)
 
 
-def insert_into_recordings_table(curr, plant, plant_id, plant_to_botanists, plant_):
-    '''Insert into the recordings table'''
+def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_botanist_id: int) -> tuple:
+    '''Returns the details needed to update the recording table.'''
 
-    recording_taken = plant.get("recording_taken")
+    recording_taken = plant_data.get("recording_taken")
 
     recording_taken = dt.strptime(
         recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
 
-    botanist_details = get_botanist_data(plant["botanist"])
+    botanist_details = get_botanist_data(plant_data["botanist"])
 
+    if botanist_details is None and last_botanist_id is not None:
 
-def update_recording(cursor, plant_id, recording_id)
+        botanist_id = last_botanist_id
+
+    elif get_botanist_id(botanist_details):
+        botanist_id = get_botanist_id(curr, botanist_details)
+    else:
+        botanist_id = insert_new_botanist(curr, botanist_details)
+
+    return (recording_taken, plant_data["soil_moisture"], plant_data["temperature"], plant_id, botanist_id)
 
 
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
@@ -137,6 +148,7 @@ def get_current_plant_properties(curr, plant_id: int) -> dict | None:
     try:
         curr.execute(
             "SELECT location_id, last_watering,plant_species_id FROM gamma.plants WHERE plant_id = ?", (plant_id,))
+
         result = curr.fetchone()
 
     except Exception as err:
@@ -199,6 +211,31 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
         "botanist_last_name": names[1],
         "botanist_phone": botanist_data.get("phone", None)
     }
+
+
+def get_botanist_id(cursor, botanist_data: dict) -> int | None:
+    '''Given information about a botanist, retrieve the botanist id from the dataframe. 
+    If the botanist is not currently in the database, return None'''
+
+    email = botanist_data["botanist_email"]
+
+    if email:
+        cursor.execute(
+            "SELECT botanist_id FROM gamma.botanists WHERE email = ?", (email,)
+        )
+    else:
+        cursor.execute(
+            "SELECT botanist_id FROM gamma.botanists WHERE first_name = ? AND last_name = ?",
+            (botanist_data["botanist_first_name"],
+             botanist_data["botanist_last_name"])
+        )
+
+    result = cursor.fetchone()
+    return result[0] if result else None
+
+
+def insert_new_botanist(cursor, botanist_data: dict) -> int:
+    '''Given information about a botanist, insert a new botanist and return the new ID. '''
 
 
 if __name__ == "__main__":
