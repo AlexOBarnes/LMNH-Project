@@ -6,7 +6,9 @@
 
 2. `source venv/bin/activate` to activate the virtual environment.
 
-3. Configure environment `.env` as below.
+3. `pip install -r requirements.txt` to install needed requirements.
+
+4. Configure environment `.env` as below.
 
 ```sh
 DB_HOST=XXXXX
@@ -16,14 +18,13 @@ DB_USER=XXXXX
 DB_PASSWORD=XXXXX
 ```
 
-5. In order to connect to the Microsoft SQL server,
+In order to connect to the Microsoft SQL server, you'll need to have a `ODBC Driver 17 for SQL Server` installed. Use the below commands (on a Mac OS) to do this:
 
 ```sh
-brew install FreeTDS
-export CFLAGS="-I$(brew --prefix openssl)/include"
-export LDFLAGS="-L$(brew --prefix openssl)/lib -L/usr/local/opt/openssl/lib"
-export CPPFLAGS="-I$(brew --prefix openssl)/include"
-pip install --pre --no-binary :all: -r requirements.txt --no-cache
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew update
+brew install msodbcsql17
+brew install unixodbc
 ```
 
 ## Files
