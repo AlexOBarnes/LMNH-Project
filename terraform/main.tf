@@ -4,10 +4,6 @@ provider "aws"{
     secret_key = var.AWS_SECRET_KEY
 }
 
-data "aws_security_group" "c13-default-sg" {
-    id = var.SECURITY_GROUP_ID
-}
-
 data "aws_subnet" "c13-public-subnet" {
   id = var.SUBNET_ID
 }
@@ -54,6 +50,28 @@ data "aws_iam_policy_document" "schedule-permissions-policy" {
     actions = ["logs:CreateLogStream", "logs:PutLogEvents", "logs:CreateLogGroup"]
   }
 }
+
+resource "aws_security_group" "dash_security_group" {
+  name        = "c13-wshao-dashboard-security-group"
+  description = "Security group to allow TCP traffic on port 8501"
+
+  ingress {
+    description      = "Allow TCP traffic on port 8501"
+    from_port        = 8501
+    to_port          = 8501
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 
 resource "aws_ecs_task_definition" "dashboard_task"{
     family = "c13-wshao-dashboard"
@@ -127,7 +145,7 @@ resource "aws_ecs_service" "dashboard_service" {
 
     network_configuration {
         subnets          = [data.aws_subnet.c13-public-subnet.id]
-        security_groups  = [data.aws_security_group.c13-default-sg.id]
+        security_groups  = [aws_security_group.security_group.id]
         assign_public_ip = true
     }
 }
@@ -218,4 +236,89 @@ resource "aws_lambda_function" "long_pipeline" {
       DB_BUCKET   = var.BUCKET
     }
   }
+}
+
+resource "aws_lambda_function" "plant_checker" {
+  function_name = "c13-wshao-plant_checker_lambda"
+  package_type  = "Image"
+  image_uri     = var.CHECKER_URI
+  role          = aws_iam_role.lambda_role.arn
+
+  environment {
+    variables = {
+      DB_HOST     = var.DB_HOST
+      DB_PORT     = var.DB_PORT
+      DB_NAME     = var.DB_NAME
+      DB_USER     = var.DB_USER
+      DB_PASSWORD = var.DB_PW
+      DB_BUCKET   = var.BUCKET
+    }
+  }
+}
+
+resource "aws_iam_role" "step_function_role" {
+  name = "c13-wshao-step-function-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "states.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_policy" "step_function_policy" {
+  name = "c13-wshao-step-function-policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = [
+          aws_lambda_function.short_pipeline.arn,
+          aws_lambda_function.plant_checker.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_step_function_policy" {
+  role       = aws_iam_role.step_function_role.name
+  policy_arn = aws_iam_policy.step_function_policy.arn
+}
+
+resource "aws_sfn_state_machine" "step_function" {
+  name     = "c13-wshao-step-function"
+  role_arn = aws_iam_role.step_function_role.arn
+  definition = jsonencode({
+    "Comment": "Step function to invoke short_pipeline and plant_checker Lambdas",
+    "StartAt": "InvokeShortPipeline",
+    "States": {
+      "InvokeShortPipeline": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.short_pipeline.arn,
+        "End": false,
+        "Next": "InvokePlantChecker"
+      },
+      "InvokePlantChecker": {
+        "Type": "Task",
+        "Resource": aws_lambda_function.plant_checker.arn,
+        "End": true
+      }
+    }
+  })
 }
