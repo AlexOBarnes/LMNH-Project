@@ -49,6 +49,12 @@ def split_name(name: str) -> list[str]:
     return [name, ""]
 
 
+def get_all_plant_ids(curr) -> list[int]:
+    '''Returns a list of all plant IDs '''
+    curr.execute("SELECT plant_id FROM gamma.plants")
+    return [int(r[0]) for r in curr.fetchall()]
+
+
 def get_current_plant_watering(curr, plant_id: int) -> dict | None:
     """Returns the current data for a given plant_id or None if not found."""
 
@@ -180,6 +186,13 @@ def map_country_code_to_id(cursor) -> dict:
     rows = cursor.fetchall()
 
     return {row[0]: row[1] for row in rows if row}
+
+
+def map_longitude_and_latitude_to_location_id(cursor) -> dict:
+    '''Return a dictionary mapping (longitude, latitude) tuples to origin_id'''
+    cursor.execute("SELECT longitude,latitude,location_id FROM gamma.origins")
+    rows = cursor.fetchall()
+    return {(row[0], row[1]): row[2] for row in rows}
 
 
 def map_continent_name_to_id(cursor) -> dict:

@@ -5,7 +5,7 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import map_plant_to_most_recent_botanist, get_current_plant_watering, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data, map_continent_name_to_id
+from transform_short import map_plant_to_most_recent_botanist, get_current_plant_watering, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data, map_continent_name_to_id, get_all_plant_ids, map_longitude_and_latitude_to_location_id
 
 from logger import logger_setup
 
@@ -33,6 +33,7 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
             plant_id = int(plant["plant_id"])
         except:
             continue
+
         new_plant = upsert_plant_table(curr, plant, plant_id)
 
         if new_plant is not None:
@@ -54,8 +55,14 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
     if plants_to_insert:
         insert_new_plants(curr, plants_to_insert)
+        LOGGER.info(f"Inserting plants with id's {
+                    [i[0] for i in plants_to_insert]}")
         curr.commit()
+
     if recordings_to_insert:
+
+        LOGGER.info(f"Inserting recordings for plants with id's {
+            [i[3] for i in recordings_to_insert]}")
         insert_new_recordings(curr, recordings_to_insert)
 
 
@@ -63,13 +70,13 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
     '''Given a list of tuples of the form
       (time_taken, soil_moisture, temperature, plant_id, botanist_id)
       insert the new recordings into the database.'''
-    print(recordings)
+
     cursor.executemany("""
-    INSERT INTO gamma.recordings
+     INSERT INTO gamma.recordings
         (time_taken, soil_moisture,temperature,plant_id,botanist_id)
-    VALUES 
+     VALUES
         (?,?,?,?,?)
-    """, recordings)
+     """, recordings)
     cursor.commit()
 
 
@@ -77,21 +84,16 @@ def upsert_plant_table(curr, plant, plant_id: int) -> tuple | None:
     '''Decides whether to update or insert into the plant table.
     Returns the tuple to insert if a plant needs to be inserted and None otherwise.
     If a plant needs to be updated, this is handled immediately.'''
-
-    last_watered = plant.get("last_watered")
-
-    last_watered = dt.strptime(
-        last_watered, '%a, %d %b %Y %H:%M:%S %Z') if last_watered else None
-
     current_plant_watering = get_current_plant_watering(curr, plant_id)
-
-    if not current_plant_watering:
+    last_watered = plant.get("last_watered", current_plant_watering)
+    last_watered = dt.strptime(
+        last_watered, '%a, %d %b %Y %H:%M:%S %Z') if isinstance(last_watered, str) else last_watered
+    if plant_id not in get_all_plant_ids(curr):
         return get_new_plant_table_entry(curr, plant, plant_id, last_watered)
 
-    if not last_watered:
-        last_watered = current_plant_watering
+    if last_watered != current_plant_watering:
+        update_plant_watered(curr, plant_id, last_watered)
 
-    update_plant_watered(curr, plant_id, last_watered)
     return None
 
 
@@ -103,25 +105,28 @@ def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_wate
     town_name_to_region_id = map_town_name_to_id(cursor)
     common_name_to_species_id = map_common_name_to_species_id(cursor)
     continent_name_to_continent_id = map_continent_name_to_id(cursor)
-
-    if {"name", "origin_location"} not in set(plant_data.keys()):
-        return None
+    location_map = map_longitude_and_latitude_to_location_id(cursor)
 
     species_id = insert_into_species_table(
         cursor, plant_data, scientific_name_to_species_id, common_name_to_species_id, plant_data["name"])
 
     origin_data = get_origin_data(plant_data["origin_location"])
-
-    if (not origin_data) or (origin_data["country_code"] not in country_code_to_country_id.keys()) or (origin_data["continent_name"] not in continent_name_to_continent_id.keys()):
+    if not origin_data:
         return None
-
     town_id = town_name_to_region_id.get(origin_data["town"])
+
+    coords = (origin_data["longitude"],
+              origin_data["latitude"])
+
     if not town_id:
         town_id = insert_into_regions_table(
             cursor, origin_data["town"], continent_name_to_continent_id[origin_data["continent_name"]], country_code_to_country_id[origin_data["country_code"]])
 
-    location_id = insert_into_locations_table(
-        cursor, origin_data["longitude"], origin_data["latitude"], town_id)
+    if not coords in location_map.keys():
+        location_id = insert_into_locations_table(
+            cursor, *coords, town_id)
+    else:
+        location_id = location_map[coords]
 
     return (plant_id, location_id, species_id, last_watering)
 
@@ -160,24 +165,24 @@ def insert_into_species_table(cursor, plant_data: dict, scientific_names_to_id: 
         match = scientific_names_to_id.get(name.lower().strip(), False)
 
         match = match if match else common_names_to_id.get(
-            name.lower.strip(), False)
+            name.lower().strip(), False)
 
         if match:
             return match
 
-    query = """
-    INSERT INTO gamma.species (common_name, scientific_name)
-    VALUES (?, ?);
-    
-    SELECT SCOPE_IDENTITY();
-    """
-    scientific_name = scientific_names[0].strip(
-    ).title() if scientific_names else common_name.title()
+    query = """INSERT INTO gamma.plant_species (common_name, scientific_name)
+    OUTPUT inserted.plant_species_id
+    VALUES (?, ?);"""
 
-    cursor.execute(query, (common_name.title(), scientific_name))
+    scientific_name = scientific_names[0].strip(
+    ) if scientific_names else common_name
+
+    cursor.execute(query, (common_name.title(), scientific_name.title()))
+
+    species_id = cursor.fetchone()
 
     cursor.commit()
-    return cursor.fetchone()[0]
+    return species_id
 
 
 def insert_into_regions_table(cursor, town: str, continent_id: int, country_id: int) -> int:
@@ -185,28 +190,28 @@ def insert_into_regions_table(cursor, town: str, continent_id: int, country_id: 
     If a region already exists in the database, return the current region id'''
     query_insert = """
     INSERT INTO gamma.regions (town_name, continent_id, country_id)
+    OUTPUT inserted.town_id
     VALUES (?, ?, ?);
-    
-    SELECT SCOPE_IDENTITY();
     """
     cursor.execute(query_insert, (town, continent_id, country_id))
+    region_id = cursor.fetchone()[0]
     cursor.commit()
 
-    return cursor.fetchone()[0]
+    return region_id
 
 
 def insert_into_locations_table(cursor, longitude: float, latitude: float, town_id: int) -> int:
-    '''Inserts into the locations table and returns the new location_id'''
+    '''Inserts into the locations table and returns the new origin_id'''
     query_insert = """
     INSERT INTO gamma.origins (longitude, latitude, town_id)
+    OUTPUT inserted.location_id
     VALUES (?, ?, ?);
-    
-    SELECT SCOPE_IDENTITY();
     """
     cursor.execute(query_insert, (longitude, latitude, town_id))
+    new_id = cursor.fetchone()[0]
     cursor.commit()
 
-    return cursor.fetchone()[0]
+    return new_id
 
 
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
@@ -225,13 +230,15 @@ def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
 
 def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
     '''Using a list of tuples containing (plant_id, location_id, plant_species_id,last_watering), inserts many new plants.'''
-
+    print(plant_data_to_insert)
     cursor.executemany(
         """
             INSERT INTO gamma.plants (plant_id, location_id, plant_species_id,last_watering)
             VALUES (?, ?, ?, ?)
-            """, plant_data_to_insert
+        """,
+        plant_data_to_insert
     )
+
     cursor.commit()
 
 
@@ -239,9 +246,8 @@ def insert_new_botanist(cursor, botanist_data: dict) -> int:
     '''Given information about a botanist, insert a new botanist and return the new ID. '''
     query = """
     INSERT INTO gamma.botanists (first_name, last_name, email, phone)
+    OUTPUT inserted.botanist_id
     VALUES (?, ?, ?, ?);
-    
-    SELECT SCOPE_IDENTITY();
     """
     cursor.execute(
         query, (
