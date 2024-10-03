@@ -4,6 +4,18 @@ import pyodbc
 LOGGER = logging.getLogger(__name__)
 
 
+def get_all_plant_ids(cursor):
+    '''Returns a mapping of all plants to the most recent botanist'''
+
+    query = """SELECT plant_id from gamma.plants
+    """
+
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    return [int(r) for r in rows]
+
+
 def map_plant_id_to_most_recent_botanist(cursor):
     '''Returns a mapping of all plants to the most recent botanist'''
 
@@ -78,3 +90,8 @@ def map_continent_name_to_id(cursor) -> dict:
     rows = cursor.fetchall()
 
     return {row[0]: row[1] for row in rows if row}
+
+
+def get_max_location_id(cursor) -> int:
+    '''Return the highest location id in the database'''
+    cursor.execute("SELECT MAX(location_id) FROM gamma.origins")

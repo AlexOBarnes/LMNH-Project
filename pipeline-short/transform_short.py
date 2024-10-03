@@ -9,7 +9,7 @@ import pyodbc
 from dotenv import load_dotenv
 
 from logger import logger_setup
-from database_functions import map_botanist_details_to_id, map_continent_name_to_id, map_country_code_to_id, map_longitude_and_latitude_to_location_id, map_plant_id_to_most_recent_botanist, map_species_names_to_species_id, map_town_name_to_id
+from database_functions import map_botanist_details_to_id, map_longitude_and_latitude_to_location_id, map_species_names_to_species_id, map_town_name_to_id, get_all_plant_ids, get_max_location_id
 
 LOGGER = logging.getLogger(__name__)
 
@@ -68,92 +68,129 @@ def validate_latitude(latitude: str) -> bool:
         return False
 
 
-def get_origin_data(origin_location: list, coordinate_map: dict, continent_map: dict, country_map: dict, town_map: dict) -> dict | None:
-    '''Formats the extracted json to get available origin data. 
-    Returns None if a required field is missing or invalid'''
-
-    if not len(origin_location) == 5:
-        return None
-
-    lon, lat = origin_location[0], origin_location[1]
-    town = origin_location[2]
-    country_code = origin_location[3].upper()
-    continent_name = origin_location[4]
-
-    if (not validate_latitude(lat)) or (not validate_longitude(lon)):
-        return None
-
-    if (lon, lat) in coordinate_map.keys():
-        return {"to_insert": False, "location_id": coordinate_map[(lon, lat)]}
-
-    else:
-
-        if town in town_map.keys():
-            return {"to_insert": True,
-                    "town_id": town_map[town],
-                    "longitude": lon,
-                    "latitude": lat}
-        else:
-            return {"to_insert": True,
-                    "longitude": lon,
-                    "latitude": lat,
-                    "town_name": town,
-                    "continent_id": continent_map[continent_name],
-                    "country_id": country_map[country_code]
-                    }
+def validate_origin_data(origin_data: list) -> bool:
+    '''Validates origin data extracted from the API'''
+    lon, lat = origin_data[0], origin_data[1]
+    return (len(origin_data) == 5) and (not validate_latitude(lat)) and (not validate_longitude(lon))
 
 
-def get_botanist_data(botanist_data: dict, all_botanists: dict) -> dict | None:
+def get_botanist_id(botanist_data: dict, all_botanists: dict) -> int:
     '''Formats the extracted json into botanist data.'''
-
-    if not {"email", "phone", "name"} in set(botanist_data.keys()):
-        return None
 
     email = botanist_data["email"]
     phone = botanist_data["phone"]
     names = split_name(botanist_data["name"])
 
     if (email, names[0], names[1]) in all_botanists:
-        return {"to_insert": False, "botanist_id": all_botanists[(email, names[0], names[1])]}
+        return all_botanists[(email, names[0], names[1])]
 
-    if not names[0] or not names[1] or not is_valid_email(email):
-        return None
-
-    return {"to_insert": True, "email": email, "phone": phone, "first_name": names[0], "last_name": names[1]}
+    raise ValueError("Botanist not available.")
 
 
-def get_species_data(plant_data: dict, all_names: dict) -> dict | None:
+def get_species_id(plant_data: dict, all_names: dict) -> int:
     '''Formats the extracted json into species data.'''
-    if not "name" in plant_data:
-        return None
 
     common_name = plant_data["name"].strip().title()
     scientific_names = [i.strip().title()
                         for i in plant_data.get('scientific_name', [])]
 
     for name in [common_name, *scientific_names]:
-
         if name in all_names["scientific_name"].keys():
-            return {"to_insert": False, "plant_species_id": all_names["scientific_name"][name]}
+            return all_names["scientific_name"][name]
         if name in all_names["common_name"].keys():
-            return {"to_insert": False, "plant_species_id": all_names["common_name"][name]}
+            return all_names["common_name"][name]
 
-    return {"to_insert": True, "common_name": common_name, "scientific_name": scientific_names[0] if scientific_names else common_name}
+    raise ValueError("Species not available")
 
 
-def transform_plant_data(extracted_data: list[dict]):
-    '''Transforms the extracted plant data'''
+def validate_plant(plant: dict, all_plant_ids: list[int]) -> bool:
+    '''Validates a plant extracted from the API'''
+    valid_keys = {"botanist", "name", "plant_id",
+                  "soil_moisture", "temperature", "last_watered", "recording_taken"}
 
-    for plant in extracted_data:
-        ...
+    if not valid_keys:
+        return False
+
+    botanist = plant.get("botanist", dict())
+    valid_email = is_valid_email(botanist.get("email", ""))
+    valid_botanist = {"name", "phone", "email"} in botanist.keys()
+
+    if plant["plant_id"] in all_plant_ids:
+        return valid_email and valid_botanist
+
+    origin_data = plant.get("origin_data")
+    if not origin_data:
+        return False
+
+    valid_location = validate_origin_data(origin_data)
+
+    return valid_email and valid_botanist and valid_location
+
+
+def clean_plants(plants: list[dict], existing_ids: list[int]):
+    return list(filter(lambda x: validate_plant(x, existing_ids), plants))
+
+
+def transform_plant_data(conn, extracted_data: list[dict]):
+    '''Transforms the extracted plant data. Returns lists containing the data that needs to be bulk inserted into the database.
+    '''
+    curr = conn.cursor()
+
+    locations_to_insert = []
+    plants_to_insert = []
+    readings_to_insert = []
+
+    all_ids = get_all_plant_ids(curr)
+
+    plants = clean_plants(extracted_data, all_ids)
+
+    botanists = map_botanist_details_to_id(curr)
+    towns = map_town_name_to_id(curr)
+    species = map_species_names_to_species_id(curr)
+    coord_map = map_longitude_and_latitude_to_location_id(curr)
+
+    next_location_id = get_max_location_id(curr) + 1
+    for p in plants:
+        p_id = p["plant_id"]
+        try:
+            botanist_id = get_botanist_id(p["botanist"], botanists)
+        except KeyError:
+            continue
+
+        recording_taken = dt.strptime(
+            p["recording_taken"], '%Y-%m-%d %H:%M:%S')
+
+        readings_to_insert += [(recording_taken,
+                                p["soil_moisture"], p["temperature"], botanist_id)]
+
+        if p not in all_ids:
+            try:
+                species_id = get_species_id(p, species)
+            except KeyError:
+                continue
+
+            origin_location = p["origin_location"]
+            lon, lat = origin_location[0], origin_location[1]
+            town = origin_location[2]
+
+            try:
+                location_id = coord_map[(lon, lat)]
+                plants_to_insert += [(p_id, location_id, species_id)]
+            except KeyError:
+                town_id = towns.get(town)
+                if not town_id:
+                    continue
+                locations_to_insert += [(lon, lat, town_id)]
+                location_id = next_location_id
+
+                next_location_id += 1
+            plants_to_insert += [(location_id, species_id)]
+    return plants_to_insert, locations_to_insert, readings_to_insert
 
 
 if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
-
-    botanist = get_botanist_data(
-        {'email': 'carl.linnaeus@lnhm.co.uk', 'name': 'Carl Linnaeus', 'phone': '(146)994-1635x35992'})
 
     with get_connection() as conn:
 
