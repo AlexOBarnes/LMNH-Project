@@ -1,4 +1,5 @@
 '''Checks and alerts whether the plant conditions are optimal'''
+#pylint: disable=E0611,W0613,W0612
 from os import environ as ENV
 import logging
 from datetime import datetime as dt
@@ -54,7 +55,7 @@ def send_emergency_email(plants: list[int]) -> None:
     subject = f"WARNING: Plant Danger Detected {get_date()}."
     for plant in plants:
         logging.info('Inserted plant %s into email',plant)
-        text += f'WARNING: Abnormal soil moisture or temperature conditions have been detected for Plant ID: {plant}.\n '
+        text += f'WARNING: Abnormal abiotic conditions have been detected for Plant ID: {plant}.\n'
     text+='\n This is an automated email. Please do not reply to this address.'
     logging.info('Email constructed.')
 
@@ -65,6 +66,7 @@ def send_emergency_email(plants: list[int]) -> None:
     logging.info('Email sent.')
 
 def config_logs() -> logging.Logger:
+    '''Configures the logging to log information'''
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
     return logger
