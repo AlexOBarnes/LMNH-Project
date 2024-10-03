@@ -13,7 +13,7 @@ def get_all_plant_ids(cursor):
     cursor.execute(query)
     rows = cursor.fetchall()
 
-    return [int(r) for r in rows]
+    return [int(r[0]) for r in rows]
 
 
 def map_plant_id_to_most_recent_botanist(cursor):
