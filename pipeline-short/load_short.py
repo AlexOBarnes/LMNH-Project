@@ -112,8 +112,11 @@ def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_wate
     if (not origin_data) or (origin_data["country_code"] not in country_code_to_country_id.keys()):
         return None
 
-    # TODO: insert into regions table if needed
-    # TODO: insert into locations table if needed
+    town_id = town_name_to_region_id.get(origin_data["town"])
+    if not town_id:
+        town_id = insert_into_regions_table()
+
+    location_id = insert_into_locations_table()
 
 
 def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_botanist_id: int) -> tuple:
@@ -173,6 +176,20 @@ def insert_into_species_table(cursor, plant_data: dict, scientific_names_to_id: 
 def insert_into_regions_table() -> int:
     '''Inserts into regions table and returns the new region id. 
     If a region already exists in the database, return the current region id'''
+
+
+def insert_into_locations_table(cursor, longitude: float, latitude: float, town_id: int) -> int:
+    '''Inserts into the locations table and returns the new location_id'''
+    query_insert = """
+    INSERT INTO gamma.origins (longitude, latitude, town_id)
+    VALUES (?, ?, ?);
+    
+    SELECT SCOPE_IDENTITY();
+    """
+    cursor.execute(query_insert, (longitude, latitude, town_id))
+    cursor.commit()
+
+    return cursor.fetchone()[0]
 
 
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):

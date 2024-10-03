@@ -129,10 +129,10 @@ def get_origin_data(origin_location: list) -> dict | None:
     lon, lat = origin_location[0], origin_location[1]
     town = origin_location[2]
     country_code = origin_location[3]
-    country_name = origin_location[4]
+    continent_name = origin_location[4]
 
     if (not validate_latitude(lat)) or (not validate_longitude(lon)) or not all(
-            isinstance(x, str) for x in [town, country_code, country_name]):
+            isinstance(x, str) for x in [town, country_code, continent_name]):
         return None
 
     return {
@@ -140,7 +140,7 @@ def get_origin_data(origin_location: list) -> dict | None:
         "latitude": float(lat),
         "town": town.strip(),
         "country_code": country_code.upper().strip(),
-        "country_name": country_name.split("/")[0].strip()
+        "continent_name": continent_name.split("/")[0].strip()
     }
 
 
