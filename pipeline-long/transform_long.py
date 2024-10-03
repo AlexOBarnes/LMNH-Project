@@ -5,22 +5,21 @@ from io import StringIO
 import pandas as pd
 
 
-def transform_data_to_csv(data: list[dict]) -> StringIO:
+def transform_data_to_csv(data: pd.DataFrame) -> bytes:
     """Transform the extract plant data into a CSV file-like object."""
 
     csv_buffer = StringIO()
 
-    if not data:
+    if data.empty:
         csv_buffer.write("id,name,moisture\n")
         csv_buffer.seek(0)
-        return csv_buffer
+        return csv_buffer.getvalue().encode("UTF-8")
 
-    df = pd.DataFrame(data)
-    df.to_csv(csv_buffer, index=False)
+    data.to_csv(csv_buffer, index=False)
 
     csv_buffer.seek(0)
 
-    return csv_buffer
+    return csv_buffer.getvalue().encode("UTF-8")
 
 
 if __name__ == "__main__":
