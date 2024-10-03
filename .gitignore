@@ -92,3 +92,5 @@ terraform.tfstate.backup
 *.tfvars
 .pemkey
 *.xml
+logs/
+*.log
