@@ -70,3 +70,6 @@ bash connect.sh
 ### truncate_recordings.sh
 - Connects to RDS database using environment variables
 - Truncates the recordings table
+### recordings.sh
+- Connects to RDS database using environment variables
+- Returns the number of rows in the recordings table
