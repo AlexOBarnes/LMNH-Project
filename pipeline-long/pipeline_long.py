@@ -4,9 +4,9 @@ and uploading to S3."""
 from os import environ as ENV
 from dotenv import load_dotenv
 
-from extract import connect_to_rds, extract_plant_data
-from transform import transform_data_to_csv
-from load import upload_csv_to_s3
+from extract_long import connect_to_rds, extract_plant_data
+from transform_long import transform_data_to_csv
+from load_long import upload_csv_to_s3
 
 
 def lambda_handler(event, context):
