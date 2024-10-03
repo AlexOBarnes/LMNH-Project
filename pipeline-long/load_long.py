@@ -6,7 +6,7 @@ import sys
 import boto3
 
 
-def upload_csv_to_s3(csv_buffer: str, bucket_name: str, folder_path: str):
+def upload_csv_to_s3(csv_buffer: bytes, bucket_name: str, folder_path: str):
     """Uploads the CSV file to the specified S3 bucket."""
 
     current_date = datetime.now().strftime("%d-%m-%Y")

@@ -2,75 +2,51 @@
 into a CSV to be stored in an S3 bucket."""
 
 from os import environ as ENV
-import pyodbc
+from pyodbc import connect
 from dotenv import load_dotenv
+import pandas as pd
 
 
-def connect_to_rds(db_host: str, db_user: str, db_password: str, db_name: str) -> pyodbc.Connection | None:
+def connect_to_rds():
     """Connects to an RDS database using pyodbc."""
 
-    try:
-        connection_string = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={db_host};"
-            f"DATABASE={db_name};"
-            f"UID={db_user};"
-            f"PWD={db_password}"
-        )
-        
-        connection = pyodbc.connect(connection_string)
-        return connection
-    
-    except pyodbc.Error as e:
-        print(f"Error connecting to RDS: {e}")
-        return None
-    
+    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                   f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
+                   f"DATABASE={ENV['DB_NAME']};"
+                   f"UID={ENV['DB_USER']};"
+                   f"PWD={ENV['DB_PASSWORD']}")
 
-def extract_plant_data(connection: pyodbc.Connection | None) -> list[dict[str, any]]:
-    """Extracts plant data older than 24 from the RDS."""
-    
-    if connection is None:
-        return []
-    
-    query = """
+
+def extract_plant_data() -> pd.DataFrame:
+    """Extracts plant data older than 24 from the RDS and truncates the
+    recordings table."""
+
+    extract_query = """
     SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id
-    FROM gamma.recordings
-    WHERE time_taken < DATEADD(HOUR, -24, GETDATE());
+    FROM gamma.recordings;
     """
 
-    try:
-        cur = connection.cursor()
-        cur.execute(query)
-        result = cur.fetchall()
+    truncate_query = "TRUNCATE TABLE gamma.recordings;"
 
-        columns = [column[0] for column in cur.description]
-        data = [dict(zip(columns, row)) for row in result]
+    with connect_to_rds() as conn:
+        df = pd.read_sql(extract_query, conn)
 
-    except pyodbc.Error as e:
-        print(f"Error querying data: {e}")
-        return []
-    
-    finally:
-        connection.close()
+        with conn.cursor() as cur:
+            cur.execute(truncate_query)
+            conn.commit()
 
-    return data
+    return df.rename(columns={"time_taken": "timestamp"})
 
 
 if __name__ == "__main__":
 
     load_dotenv()
 
-    DB_HOST = ENV["DB_HOST"]
-    DB_USER = ENV["DB_USER"]
-    DB_PASSWORD = ENV["DB_PASSWORD"]
-    DB_NAME = ENV["DB_NAME"]
+    plant_data = extract_plant_data()
 
-    conn = connect_to_rds(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)
-    plant_data = extract_plant_data(conn)
-
-    if plant_data:
-        for row in plant_data[:5]:
-            print(row)
+    if not plant_data.empty:
+        for i in range(len(plant_data)):
+            print(plant_data.iloc[i])
 
     else:
         print("No data extracted.")
