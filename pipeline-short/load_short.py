@@ -5,7 +5,7 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id
+from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data
 
 from logger import logger_setup
 from extract_short import extract
@@ -32,6 +32,7 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
             continue
 
         new_plant = upsert_plant_table(curr, plant, plant_id)
+
         if new_plant is not None:
             plants_to_insert.append(new_plant)
 
@@ -49,6 +50,7 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
         recordings_to_insert.append(get_new_recording_table_entry(
             curr, plant_id, plant, last_botanist))
 
+    insert_new_plants(curr, plants_to_insert)
     insert_new_recordings(curr, recordings_to_insert)
 
 
@@ -88,15 +90,30 @@ def upsert_plant_table(curr, plant, plant_id: int) -> tuple | None:
 
     if last_watered:
         update_plant_watered(curr, plant_id, last_watered)
-        return False
+        return None
 
 
-def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_watering: dt):
-    '''Generates a tuple containing (plant_id, location_id, plant_species_id, last_watering)'''
+def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_watering: dt) -> tuple | None:
+    '''Generates a tuple containing (plant_id, location_id, plant_species_id, last_watering).
+    If any required fields are missing, None is returned'''
     scientific_name_to_species_id = map_scientific_name_to_species_id(cursor)
     country_code_to_country_id = map_country_code_to_id(cursor)
     town_name_to_region_id = map_town_name_to_id(cursor)
     common_name_to_species_id = map_common_name_to_species_id(cursor)
+
+    if {"name", "origin_location"} not in set(plant_data.keys()):
+        return None
+
+    species_id = insert_into_species_table(
+        cursor, plant_data, scientific_name_to_species_id, common_name_to_species_id)
+
+    origin_data = get_origin_data(plant_data["origin_location"])
+
+    if (not origin_data) or (origin_data["country_code"] not in country_code_to_country_id.keys()):
+        return None
+
+    # TODO: insert into regions table if needed
+    # TODO: insert into locations table if needed
 
 
 def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_botanist_id: int) -> tuple:
@@ -153,6 +170,11 @@ def insert_into_species_table(cursor, plant_data: dict, scientific_names_to_id: 
     return cursor.fetchone()[0]
 
 
+def insert_into_regions_table() -> int:
+    '''Inserts into regions table and returns the new region id. 
+    If a region already exists in the database, return the current region id'''
+
+
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
     '''Update a plant's last_watering entry'''
 
@@ -174,8 +196,7 @@ def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
         """
             INSERT INTO gamma.plants (plant_id, location_id, plant_species_id,last_watering)
             VALUES (?, ?, ?, ?)
-            """,
-        (plant_data_to_insert)
+            """, plant_data_to_insert
     )
     cursor.commit()
 
