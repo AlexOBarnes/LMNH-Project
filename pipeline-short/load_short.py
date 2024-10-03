@@ -119,7 +119,7 @@ def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_wate
             cursor, origin_data["town"], continent_name_to_continent_id[origin_data["continent_name"]], country_code_to_country_id[origin_data["country_code"]])
 
     location_id = insert_into_locations_table(
-        cursor, origin_data["longitude"], origin_data["latitude"])
+        cursor, origin_data["longitude"], origin_data["latitude"], town_id)
 
     return (plant_id, location_id, species_id, last_watering)
 
