@@ -146,13 +146,17 @@ def get_origin_data(origin_location: list) -> dict | None:
 
 def map_town_name_to_id(cursor) -> dict:
     '''Return a dictionary mapping country codes to country_id'''
+    cursor.execute("SELECT town_name, town_id FROM gamma.regions")
+    rows = cursor.fetchall()
+
+    return {row[0]: row[1] for row in rows if row}
 
 
 def map_country_code_to_id(cursor) -> dict:
     '''Return a dictionary mapping country codes to country_id'''
     cursor.execute("SELECT country_code, country_id FROM gamma.countries")
     rows = cursor.fetchall()
-    print(rows)
+
     return {row[0]: row[1] for row in rows if row}
 
 
