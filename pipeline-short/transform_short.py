@@ -9,6 +9,7 @@ import pyodbc
 from dotenv import load_dotenv
 
 from logger import logger_setup
+from database_functions import map_botanist_details_to_id, map_longitude_and_latitude_to_location_id, map_species_names_to_species_id, map_town_name_to_id, get_all_plant_ids, get_max_location_id
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,61 +45,9 @@ def split_name(name: str) -> list[str]:
 
     names = name.strip().split(" ")
     if len(names) > 1:
-        return [names[0].strip(), " ".join(names[1:]).strip()]
+        return [names[0].strip().title(), " ".join(names[1:]).strip().title()]
 
     return [name, ""]
-
-
-def get_current_plant_properties(curr, plant_id: int) -> dict | None:
-    """Returns the current data for a given plant_id or None if not found."""
-
-    try:
-        curr.execute(
-            "SELECT location_id, last_watering,plant_species_id FROM gamma.plants WHERE plant_id = ?", (plant_id,))
-
-        result = curr.fetchone()
-
-    except Exception as err:
-        LOGGER.error(err)
-        return None
-
-    return result
-
-
-def map_plant_to_most_recent_botanist(cursor):
-    '''Returns a mapping of all plants to the most recent botanist'''
-
-    query = """SELECT r.plant_id, r.botanist_id
-    FROM gamma.recordings r
-    JOIN (
-        SELECT plant_id, MAX(time_taken) AS max_time
-        FROM gamma.recordings
-        GROUP BY plant_id
-    ) recent ON r.plant_id = recent.plant_id AND r.time_taken = recent.max_time
-    """
-
-    cursor.execute(query)
-
-    rows = cursor.fetchall()
-
-    return {row[0].plant_id: row[1].botanist_id for row in rows if row}
-
-
-def get_botanist_data(botanist_data: dict) -> dict | None:
-    '''Formats the extracted json into botanist data. Returns None if a required field is missing.'''
-    email = botanist_data.get("email", None)
-    full_name = botanist_data.get("name", None)
-    if not full_name:
-        return None
-
-    names = split_name(full_name)
-
-    return {
-        "botanist_email": email if is_valid_email(email) else None,
-        "botanist_first_name": names[0],
-        "botanist_last_name": names[1],
-        "botanist_phone": botanist_data.get("phone", None)
-    }
 
 
 def validate_longitude(longitude: str) -> bool:
@@ -119,111 +68,132 @@ def validate_latitude(latitude: str) -> bool:
         return False
 
 
-def get_origin_data(origin_location: list) -> dict | None:
-    '''Formats the extracted json to get available origin data. 
-    Returns None if a required field is missing or invalid'''
-
-    if not len(origin_location) == 5:
-        return None
-
-    lon, lat = origin_location[0], origin_location[1]
-    town = origin_location[2]
-    country_code = origin_location[3]
-    continent_name = origin_location[4]
-
-    if (not validate_latitude(lat)) or (not validate_longitude(lon)) or not all(
-            isinstance(x, str) for x in [town, country_code, continent_name]):
-        return None
-
-    return {
-        "longitude": float(lon),
-        "latitude": float(lat),
-        "town": town.strip(),
-        "country_code": country_code.upper().strip(),
-        "continent_name": continent_name.split("/")[0].strip()
-    }
+def validate_origin_data(origin_data: list) -> bool:
+    '''Validates origin data extracted from the API'''
+    lon, lat = origin_data[0], origin_data[1]
+    return (len(origin_data) == 5) and (not validate_latitude(lat)) and (not validate_longitude(lon))
 
 
-def map_town_name_to_id(cursor) -> dict:
-    '''Return a dictionary mapping country codes to country_id'''
-    cursor.execute("SELECT town_name, town_id FROM gamma.regions")
-    rows = cursor.fetchall()
+def get_botanist_id(botanist_data: dict, all_botanists: dict) -> int:
+    '''Formats the extracted json into botanist data.'''
 
-    return {row[0]: row[1] for row in rows if row}
+    email = botanist_data["email"]
+    phone = botanist_data["phone"]
+    names = split_name(botanist_data["name"])
 
+    if (email, names[0], names[1]) in all_botanists:
+        return all_botanists[(email, names[0], names[1])]
 
-def map_scientific_name_to_species_id(cursor) -> dict:
-    '''Return a dictionary mapping scientific_name to species_id'''
-
-    cursor.execute(
-        "SELECT plant_species_id, scientific_name FROM gamma.plant_species")
-
-    rows = cursor.fetchall()
-
-    return {row[1].lower().strip(): row[0] for row in rows if row}
+    raise ValueError("Botanist not available.")
 
 
-def map_common_name_to_species_id(cursor) -> dict:
-    '''Return a dictionary mapping common_name to species_id'''
+def get_species_id(plant_data: dict, all_names: dict) -> int:
+    '''Formats the extracted json into species data.'''
 
-    cursor.execute(
-        "SELECT plant_species_id, common_name FROM gamma.plant_species")
+    common_name = plant_data["name"].strip().title()
+    scientific_names = [i.strip().title()
+                        for i in plant_data.get('scientific_name', [])]
 
-    rows = cursor.fetchall()
+    for name in [common_name, *scientific_names]:
+        if name in all_names["scientific_name"].keys():
+            return all_names["scientific_name"][name]
+        if name in all_names["common_name"].keys():
+            return all_names["common_name"][name]
 
-    return {row[1].lower().strip(): row[0] for row in rows if row}
-
-
-def map_country_code_to_id(cursor) -> dict:
-    '''Return a dictionary mapping country codes to country_id'''
-    cursor.execute("SELECT country_code, country_id FROM gamma.countries")
-    rows = cursor.fetchall()
-
-    return {row[0]: row[1] for row in rows if row}
+    raise ValueError("Species not available")
 
 
-def map_continent_name_to_id(cursor) -> dict:
-    '''Return a dictionary mapping continent_names to continent_ids'''
-    cursor.execute("SELECT continent_name, continent_id FROM gamma.continents")
-    rows = cursor.fetchall()
+def validate_plant(plant: dict, all_plant_ids: list[int]) -> bool:
+    '''Validates a plant extracted from the API'''
+    valid_keys = {"botanist", "name", "plant_id",
+                  "soil_moisture", "temperature", "last_watered", "recording_taken"}
 
-    return {row[0]: row[1] for row in rows if row}
+    if not valid_keys in set(plant.keys()):
+        return False
+
+    botanist = plant.get("botanist", dict())
+    valid_email = is_valid_email(botanist.get("email", ""))
+    valid_botanist = {"name", "phone", "email"} in set(botanist.keys())
+
+    if plant["plant_id"] in all_plant_ids:
+        return valid_email and valid_botanist
+
+    origin_data = plant.get("origin_data")
+    if not origin_data:
+        return False
+
+    valid_location = validate_origin_data(origin_data)
+
+    return valid_email and valid_botanist and valid_location
 
 
-def get_botanist_id(cursor, botanist_data: dict) -> int | None:
-    '''Given information about a botanist, retrieve the botanist id from the dataframe. 
-    If the botanist is not currently in the database, return None'''
+def clean_plants(plants: list[dict], existing_ids: list[int]):
+    return list(filter(lambda x: validate_plant(x, existing_ids), plants))
 
-    email = botanist_data["botanist_email"]
 
-    if email:
-        cursor.execute(
-            "SELECT botanist_id FROM gamma.botanists WHERE email = ?", (email,)
-        )
-    else:
-        cursor.execute(
-            "SELECT botanist_id FROM gamma.botanists WHERE first_name = ? AND last_name = ?",
-            (botanist_data["botanist_first_name"],
-             botanist_data["botanist_last_name"])
-        )
+def transform_plant_data(conn, extracted_data: list[dict]):
+    '''Transforms the extracted plant data. Returns lists containing the data that needs to be bulk inserted into the database.
+    '''
+    curr = conn.cursor()
 
-    result = cursor.fetchone()
+    locations_to_insert = []
+    plants_to_insert = []
+    readings_to_insert = []
 
-    LOGGER.info("Botanist identified as %s", result)
-    return result[0] if result else None
+    all_ids = get_all_plant_ids(curr)
+
+    plants = clean_plants(extracted_data, all_ids)
+
+    botanists = map_botanist_details_to_id(curr)
+    towns = map_town_name_to_id(curr)
+    species = map_species_names_to_species_id(curr)
+    coord_map = map_longitude_and_latitude_to_location_id(curr)
+
+    next_location_id = get_max_location_id(curr) + 1
+    for p in plants:
+        p_id = p["plant_id"]
+        try:
+            botanist_id = get_botanist_id(p["botanist"], botanists)
+        except KeyError:
+            continue
+
+        recording_taken = dt.strptime(
+            p["recording_taken"], '%Y-%m-%d %H:%M:%S')
+
+        readings_to_insert += [(recording_taken,
+                                p["soil_moisture"], p["temperature"], botanist_id)]
+
+        if p not in all_ids:
+            try:
+                species_id = get_species_id(p, species)
+            except KeyError:
+                continue
+
+            origin_location = p["origin_location"]
+            lon, lat = origin_location[0], origin_location[1]
+            town = origin_location[2]
+
+            try:
+                location_id = coord_map[(lon, lat)]
+                plants_to_insert += [(p_id, location_id, species_id)]
+            except KeyError:
+                town_id = towns.get(town)
+                if not town_id:
+                    continue
+                locations_to_insert += [(lon, lat, town_id)]
+                location_id = next_location_id
+
+                next_location_id += 1
+            plants_to_insert += [(location_id, species_id)]
+    return plants_to_insert, locations_to_insert, readings_to_insert
 
 
 if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
 
-    botanist = get_botanist_data(
-        {'email': 'carl.linnaeus@lnhm.co.uk', 'name': 'Carl Linnaeus', 'phone': '(146)994-1635x35992'})
-
     with get_connection() as conn:
 
         conn_cursor = conn.cursor()
-        map_country_code_to_id(conn_cursor)
-        get_botanist_id(conn_cursor, botanist)
 
         conn_cursor.close()

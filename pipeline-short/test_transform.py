@@ -21,25 +21,6 @@ def test_validate_latitude():
     assert validate_latitude("xyz") == False
 
 
-def test_get_origin_data():
-    '''Tests that valid origin data is reformatted correctly'''
-    origin_location = ["30", "-40", "Town", "US", "United States/USA"]
-    expected_output = {
-        "longitude": 30.0,
-        "latitude": -40.0,
-        "town": "Town",
-        "country_code": "US",
-        "country_name": "United States"
-    }
-    assert get_origin_data(origin_location) == expected_output
-
-
-def test_get_origin_data_invalid():
-    '''Tests that invalid origin data returns None'''
-    origin_location = ["30", "-400", "Town", "US", "United States/USA"]
-    assert get_origin_data(origin_location) is None
-
-
 def test_split_name_standard():
     """Test for a standard first and last name."""
     assert split_name("John Doe") == ["John", "Doe"]
