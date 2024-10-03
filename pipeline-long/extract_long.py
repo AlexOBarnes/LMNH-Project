@@ -1,5 +1,6 @@
 """A file for extracting data older than 24 hours from the RDS
 into a CSV to be stored in an S3 bucket."""
+# pylint: disable=E0611
 
 from os import environ as ENV
 from pyodbc import connect
@@ -21,15 +22,18 @@ def extract_plant_data() -> pd.DataFrame:
     """Extracts plant data older than 24 from the RDS and truncates the
     recordings table."""
 
-    extract_query = """
-    SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id
-    FROM gamma.recordings;
-    """
+    extract_query = (
+        "SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id "
+        "FROM gamma.recordings;"
+    ).strip()
 
     truncate_query = "TRUNCATE TABLE gamma.recordings;"
 
     with connect_to_rds() as conn:
-        df = pd.read_sql(extract_query, conn)
+        try:
+            df = pd.read_sql(extract_query, conn)
+        except Exception:
+            return pd.DataFrame(columns=["recording_id", "timestamp", "soil_moisture", "temperature", "plant_id", "botanist_id"])
 
         with conn.cursor() as cur:
             cur.execute(truncate_query)
