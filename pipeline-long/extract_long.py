@@ -23,7 +23,7 @@ def extract_plant_data() -> list[dict[str, any]]:
     query = """
     SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id
     FROM gamma.recordings
-    WHERE time_taken < DATEADD(HOUR, -24, GETUTCDATE());
+    WHERE time_taken < DATEADD(DAY, -1, GETUTCDATE());
     """
 
     with connect_to_rds() as conn:
