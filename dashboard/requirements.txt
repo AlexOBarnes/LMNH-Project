@@ -4,3 +4,5 @@ python-dotenv
 boto3
 pyodbc
 altair
+pytest
+pylint
