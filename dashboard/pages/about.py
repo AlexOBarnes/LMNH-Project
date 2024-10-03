@@ -6,7 +6,7 @@ if __name__ == "__main__":
     st.set_page_config(layout="wide")
     st.markdown("<h1 style='color: #e3298c;'>🌱 About Us 🌱</h1>",
                 unsafe_allow_html=True)
-    
+
     st.write("""
     **Liverpool Museum of Natural History (LMNH)** is at the forefront of botanical science, dedicated to conserving and showcasing the incredible 
     diversity of plant life. With the opening of our new botanical wing, we are excited to share the wonders of the plant world with visitors and researchers alike.
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     """)
 
     st.image("https://dsmmagazine.com/wp-content/uploads/2020/10/conservatory_sipandstroll-1536x1028.jpg",
-            caption="Liverpool Natural History Museum's Conservatory", width=500)
+             caption="Liverpool Natural History Museum's Conservatory", width=500)
 
     st.subheader("Our Plant Monitoring Initiative")
     st.write("""
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     st.subheader("Commitment to Plant Conservation")
     st.write("""
-        At LNHM, we believe that preserving plant life is critical to maintaining biodiversity. Through this project, we are not only safeguarding the health of 
+        At LMNH, we believe that preserving plant life is critical to maintaining biodiversity. Through this project, we are not only safeguarding the health of 
         the plants in our conservatory but also contributing to ongoing research in plant conservation and care.
 
         We are committed to using technology in a way that supports our mission of education, preservation, and sustainability.

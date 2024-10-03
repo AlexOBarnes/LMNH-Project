@@ -1,3 +1,4 @@
+# pylint: disable=E0611
 """This script contains the queries for recent and historical data."""
 
 from os import environ as ENV
@@ -27,7 +28,7 @@ def get_plants_dict():
             result = cur.fetchall()
             species_dict = {
                 row.common_name: row.plant_species_id for row in result}
-    
+
     return species_dict
 
 
@@ -68,5 +69,3 @@ def fetch_plant_species_data(selected_plant_id):
     """
     with get_connection() as conn:
         return pd.read_sql(query, conn, params=(selected_plant_id,))
-
-print(fetch_plant_species_data(1))

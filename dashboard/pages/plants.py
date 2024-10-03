@@ -1,10 +1,11 @@
+# pylint: disable=E0611
 """Dashboard page for a table of all plants in the database."""
 
+from os import environ as ENV
 import streamlit as st
 import pandas as pd
 from pyodbc import connect
 from dotenv import load_dotenv
-from os import environ as ENV
 
 # Load environment variables
 load_dotenv()
@@ -30,24 +31,20 @@ def fetch_plant_data():
         return pd.read_sql(query, conn)
 
 
-def run():
-    st.set_page_config(layout="wide")
-    st.markdown("<h1 style='color: #e3298c;'>🌱 Available Plants 🌱</h1>",
-                unsafe_allow_html=True)
+st.set_page_config(layout="wide")
+st.markdown("<h1 style='color: #e3298c;'>🌱 Available Plants 🌱</h1>",
+            unsafe_allow_html=True)
 
-    # Fetch plant data
-    plant_data = fetch_plant_data()
+# Fetch plant data
+plant_data = fetch_plant_data()
 
-    # Rename columns
-    plant_data.rename(columns={
-        "plant_id": "Plant ID",
-        "common_name": "Common Name",
-        "scientific_name": "Scientific Name"
-    }, inplace=True)
+# Rename columns
+plant_data.rename(columns={
+    "plant_id": "Plant ID",
+    "common_name": "Common Name",
+    "scientific_name": "Scientific Name"
+}, inplace=True)
 
-    # Display the plant data as a table without the index
-    st.table(plant_data)
-    st.markdown("<style>th.row_heading, th.blank {display:None}</style>", unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    run()
+# Display the plant data as a table without the index
+st.table(plant_data)
+st.markdown("<style>th.row_heading, th.blank {display:None}</style>", unsafe_allow_html=True)
