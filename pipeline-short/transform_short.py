@@ -105,21 +105,24 @@ def get_species_id(plant_data: dict, all_names: dict) -> int:
 
 def validate_plant(plant: dict, all_plant_ids: list[int]) -> bool:
     '''Validates a plant extracted from the API'''
-    valid_keys = {"botanist", "name", "plant_id",
-                  "soil_moisture", "temperature", "last_watered", "recording_taken"}
 
-    if not valid_keys in set(plant.keys()):
+    print(plant)
+    valid_keys = ["botanist", "name", "plant_id",
+                  "soil_moisture", "temperature", "last_watered", "recording_taken"]
+
+    if not all(v in plant.keys() for v in valid_keys):
         return False
 
-    botanist = plant.get("botanist", dict())
+    botanist = plant['botanist']
     valid_email = is_valid_email(botanist.get("email", ""))
-    valid_botanist = {"name", "phone", "email"} in set(botanist.keys())
+    valid_botanist = all(k in botanist for k in ["name", "phone", "email"])
 
     if plant["plant_id"] in all_plant_ids:
         return valid_email and valid_botanist
 
     origin_data = plant.get("origin_data")
     if not origin_data:
+        print(3)
         return False
 
     valid_location = validate_origin_data(origin_data)
@@ -150,20 +153,24 @@ def transform_plant_data(conn, extracted_data: list[dict]):
     coord_map = map_longitude_and_latitude_to_location_id(curr)
 
     next_location_id = get_max_location_id(curr) + 1
+
     for p in plants:
         p_id = p["plant_id"]
+        print(p)
         try:
             botanist_id = get_botanist_id(p["botanist"], botanists)
         except KeyError:
+            print(p)
             continue
 
         recording_taken = dt.strptime(
             p["recording_taken"], '%Y-%m-%d %H:%M:%S')
 
         readings_to_insert += [(recording_taken,
-                                p["soil_moisture"], p["temperature"], botanist_id)]
+                                p["soil_moisture"], p["temperature"], botanist_id), p["last_watered"]]
 
         if p not in all_ids:
+
             try:
                 species_id = get_species_id(p, species)
             except KeyError:
@@ -174,13 +181,21 @@ def transform_plant_data(conn, extracted_data: list[dict]):
             town = origin_location[2]
 
             try:
+
                 location_id = coord_map[(lon, lat)]
+                print(origin_location)
+
                 plants_to_insert += [(p_id, location_id, species_id)]
+
             except KeyError:
+
                 town_id = towns.get(town)
+
                 if not town_id:
                     continue
+
                 locations_to_insert += [(lon, lat, town_id)]
+
                 location_id = next_location_id
 
                 next_location_id += 1

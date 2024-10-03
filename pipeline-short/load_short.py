@@ -19,6 +19,7 @@ def load():
         extracted_data = extract()
         plants_to_insert, locations_to_insert, readings_to_insert = transform_plant_data(
             conn, extracted_data)
+        print(plants_to_insert, locations_to_insert, readings_to_insert)
         cur = conn.cursor()
 
         if locations_to_insert:
@@ -43,9 +44,9 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
 
     cursor.executemany("""
      INSERT INTO gamma.recordings
-        (time_taken, soil_moisture,temperature,plant_id,botanist_id)
+        (time_taken, soil_moisture,temperature,plant_id,botanist_id,last_watering)
      VALUES
-        (?,?,?,?,?)
+        (?,?,?,?,?,?)
      """, recordings)
 
 
