@@ -90,7 +90,7 @@ def upsert_plant_table(curr, plant, plant_id: int) -> tuple | None:
 
     if last_watered:
         update_plant_watered(curr, plant_id, last_watered)
-        return None
+    return None
 
 
 def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_watering: dt) -> tuple | None:
