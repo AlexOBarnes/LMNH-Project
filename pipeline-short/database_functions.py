@@ -95,3 +95,5 @@ def map_continent_name_to_id(cursor) -> dict:
 def get_max_location_id(cursor) -> int:
     '''Return the highest location id in the database'''
     cursor.execute("SELECT MAX(location_id) FROM gamma.origins")
+    row = cursor.fetchone()
+    return row[0]
