@@ -18,11 +18,6 @@ def get_connection():
                    f"PWD={ENV['DB_PW']}")
 
 
-def extract_date(timestamp: str) -> dt:
-    '''Uses datetime to extract datetime object'''
-    return dt.strptime(timestamp, "%a, %d %b %Y %H:%M:%S %Z")
-
-
 def find_location_id(location_data: list) -> int:
     '''Returns the location id for a set of longitude and latitude'''
     q = '''SELECT location_id
@@ -61,7 +56,6 @@ def find_species_id(name: list) -> int:
 def extract_plant_data(plant: dict) -> list:
     '''Takes in the response and returns a cleaned dict'''
     return [plant.get('plant_id', None),
-            extract_date(plant.get('last_watered', None)),
             find_location_id(plant.get('origin_location', None)),
             find_species_id(plant.get('name', None))]
 
@@ -84,8 +78,8 @@ def get_plant_data() -> list[list]:
 def insert_data(plant_data) -> None:
     '''Inserts plant data from endpoints'''
     q = '''INSERT INTO gamma.plants
-    (plant_id,last_watering,location_id,plant_species_id)
-    VALUES (?,?,?,?)'''
+    (plant_id,location_id,plant_species_id)
+    VALUES (?,?,?)'''
     with get_connection() as conn:
         logging.info('Connection established.')
         with conn.cursor() as cur:
