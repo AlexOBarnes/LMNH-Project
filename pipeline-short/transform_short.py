@@ -108,12 +108,12 @@ def validate_plant(plant: dict, all_plant_ids: list[int]) -> bool:
     valid_keys = {"botanist", "name", "plant_id",
                   "soil_moisture", "temperature", "last_watered", "recording_taken"}
 
-    if not valid_keys:
+    if not valid_keys in set(plant.keys()):
         return False
 
     botanist = plant.get("botanist", dict())
     valid_email = is_valid_email(botanist.get("email", ""))
-    valid_botanist = {"name", "phone", "email"} in botanist.keys()
+    valid_botanist = {"name", "phone", "email"} in set(botanist.keys())
 
     if plant["plant_id"] in all_plant_ids:
         return valid_email and valid_botanist
