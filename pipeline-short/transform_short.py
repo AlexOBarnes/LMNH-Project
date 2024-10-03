@@ -182,6 +182,14 @@ def map_country_code_to_id(cursor) -> dict:
     return {row[0]: row[1] for row in rows if row}
 
 
+def map_continent_name_to_id(cursor) -> dict:
+    '''Return a dictionary mapping continent_names to continent_ids'''
+    cursor.execute("SELECT continent_name, continent_id FROM gamma.continents")
+    rows = cursor.fetchall()
+
+    return {row[0]: row[1] for row in rows if row}
+
+
 def get_botanist_id(cursor, botanist_data: dict) -> int | None:
     '''Given information about a botanist, retrieve the botanist id from the dataframe. 
     If the botanist is not currently in the database, return None'''
