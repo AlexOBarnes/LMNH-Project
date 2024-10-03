@@ -35,7 +35,7 @@ def extract_plant_data() -> pd.DataFrame:
             cur.execute(truncate_query)
             conn.commit()
 
-    return df
+    return df.rename(columns={"time_taken": "timestamp"})
 
 
 if __name__ == "__main__":
