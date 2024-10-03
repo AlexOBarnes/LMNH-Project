@@ -242,7 +242,12 @@ def insert_new_botanist(cursor, botanist_data: dict) -> int:
     SELECT SCOPE_IDENTITY();
     """
     cursor.execute(
-        query, (botanist_data['botanist_first_name'], botanist_data['botanist_last_name'], botanist_data['botanist_email'], botanist_data['botanist_phone']))
+        query, (
+            botanist_data['botanist_first_name'],
+            botanist_data['botanist_last_name'],
+            botanist_data['botanist_email'],
+            botanist_data['botanist_phone'])
+    )
 
     cursor.commit()
     return cursor.fetchone()[0]
