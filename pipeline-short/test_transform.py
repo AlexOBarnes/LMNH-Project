@@ -1,6 +1,6 @@
 # pylint: skip-file
 import pytest
-from transform_short import split_name, get_origin_data, validate_latitude, validate_longitude
+from transform_short import split_name, validate_latitude, validate_longitude
 
 
 def test_validate_longitude():

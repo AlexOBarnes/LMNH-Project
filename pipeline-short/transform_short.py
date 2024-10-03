@@ -106,7 +106,6 @@ def get_species_id(plant_data: dict, all_names: dict) -> int:
 def validate_plant(plant: dict, all_plant_ids: list[int]) -> bool:
     '''Validates a plant extracted from the API'''
 
-    print(plant)
     valid_keys = ["botanist", "name", "plant_id",
                   "soil_moisture", "temperature", "last_watered", "recording_taken"]
 
@@ -122,7 +121,7 @@ def validate_plant(plant: dict, all_plant_ids: list[int]) -> bool:
 
     origin_data = plant.get("origin_data")
     if not origin_data:
-        print(3)
+
         return False
 
     valid_location = validate_origin_data(origin_data)
@@ -156,20 +155,23 @@ def transform_plant_data(conn, extracted_data: list[dict]):
 
     for p in plants:
         p_id = p["plant_id"]
-        print(p)
+
         try:
             botanist_id = get_botanist_id(p["botanist"], botanists)
         except KeyError:
-            print(p)
+
             continue
 
         recording_taken = dt.strptime(
             p["recording_taken"], '%Y-%m-%d %H:%M:%S')
 
-        readings_to_insert += [(recording_taken,
-                                p["soil_moisture"], p["temperature"], botanist_id), p["last_watered"]]
+        last_watered = dt.strptime(
+            p["last_watered"], "%a, %d %b %Y %H:%M:%S %Z")
 
-        if p not in all_ids:
+        readings_to_insert += [(recording_taken,
+                                p["soil_moisture"], p["temperature"], p_id, botanist_id, last_watered)]
+
+        if p_id not in all_ids:
 
             try:
                 species_id = get_species_id(p, species)
@@ -183,9 +185,6 @@ def transform_plant_data(conn, extracted_data: list[dict]):
             try:
 
                 location_id = coord_map[(lon, lat)]
-                print(origin_location)
-
-                plants_to_insert += [(p_id, location_id, species_id)]
 
             except KeyError:
 
@@ -199,7 +198,9 @@ def transform_plant_data(conn, extracted_data: list[dict]):
                 location_id = next_location_id
 
                 next_location_id += 1
-            plants_to_insert += [(location_id, species_id)]
+
+            plants_to_insert += [(p_id, location_id, species_id)]
+
     return plants_to_insert, locations_to_insert, readings_to_insert
 
 
