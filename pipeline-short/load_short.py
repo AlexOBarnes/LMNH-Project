@@ -14,7 +14,7 @@ from extract_short import extract
 LOGGER = logging.getLogger(__name__)
 
 
-def upsert_plants(curr, plant_data: list[dict]) -> None:
+def upsert_plants(conn, curr, plant_data: list[dict]) -> None:
     """Inserts new plants into the database or updates existing ones with 
     a new watering time. 
 
@@ -55,9 +55,10 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
     if plants_to_insert:
         insert_new_plants(curr, plants_to_insert)
-        LOGGER.info(f"Inserting plants with id's {
-                    [i[0] for i in plants_to_insert]}")
-        curr.commit()
+        logging.info(f"Inserting plants with id's {
+            [i[0] for i in plants_to_insert]}")
+
+        conn.commit()
 
     if recordings_to_insert:
 
@@ -77,18 +78,21 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
      VALUES
         (?,?,?,?,?)
      """, recordings)
-    cursor.commit()
 
 
 def upsert_plant_table(curr, plant, plant_id: int) -> tuple | None:
     '''Decides whether to update or insert into the plant table.
     Returns the tuple to insert if a plant needs to be inserted and None otherwise.
     If a plant needs to be updated, this is handled immediately.'''
+
     current_plant_watering = get_current_plant_watering(curr, plant_id)
+
     last_watered = plant.get("last_watered", current_plant_watering)
+
     last_watered = dt.strptime(
         last_watered, '%a, %d %b %Y %H:%M:%S %Z') if isinstance(last_watered, str) else last_watered
-    if plant_id not in get_all_plant_ids(curr):
+
+    if not current_plant_watering:
         return get_new_plant_table_entry(curr, plant, plant_id, last_watered)
 
     if last_watered != current_plant_watering:
@@ -181,7 +185,6 @@ def insert_into_species_table(cursor, plant_data: dict, scientific_names_to_id: 
 
     species_id = cursor.fetchone()
 
-    cursor.commit()
     return species_id
 
 
@@ -195,7 +198,6 @@ def insert_into_regions_table(cursor, town: str, continent_id: int, country_id: 
     """
     cursor.execute(query_insert, (town, continent_id, country_id))
     region_id = cursor.fetchone()[0]
-    cursor.commit()
 
     return region_id
 
@@ -209,7 +211,6 @@ def insert_into_locations_table(cursor, longitude: float, latitude: float, town_
     """
     cursor.execute(query_insert, (longitude, latitude, town_id))
     new_id = cursor.fetchone()[0]
-    cursor.commit()
 
     return new_id
 
@@ -225,12 +226,11 @@ def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
             """,
         (new_last_watered, plant_id_to_update)
     )
-    cursor.commit()
 
 
 def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
     '''Using a list of tuples containing (plant_id, location_id, plant_species_id,last_watering), inserts many new plants.'''
-    print(plant_data_to_insert)
+
     cursor.executemany(
         """
             INSERT INTO gamma.plants (plant_id, location_id, plant_species_id,last_watering)
@@ -238,8 +238,6 @@ def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
         """,
         plant_data_to_insert
     )
-
-    cursor.commit()
 
 
 def insert_new_botanist(cursor, botanist_data: dict) -> int:
@@ -257,7 +255,6 @@ def insert_new_botanist(cursor, botanist_data: dict) -> int:
             botanist_data['botanist_phone'])
     )
 
-    cursor.commit()
     return cursor.fetchone()[0]
 
 
@@ -265,9 +262,10 @@ if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
     data = extract()
+
     with get_connection() as conn:
 
         conn_cursor = conn.cursor()
-        upsert_plants(conn_cursor, data)
-        conn_cursor.commit()
+        upsert_plants(conn, conn_cursor, data)
+        conn.commit()
         conn_cursor.close()

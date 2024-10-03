@@ -9,6 +9,7 @@ import pyodbc
 from dotenv import load_dotenv
 
 from logger import logger_setup
+from database_functions import map_botanist_details_to_id, map_common_name_to_species_id, map_continent_name_to_id, map_country_code_to_id, map_longitude_and_latitude_to_location_id, map_plant_id_to_most_recent_botanist, map_scientific_name_to_species_id, map_town_name_to_id
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,47 +48,6 @@ def split_name(name: str) -> list[str]:
         return [names[0].strip(), " ".join(names[1:]).strip()]
 
     return [name, ""]
-
-
-def get_all_plant_ids(curr) -> list[int]:
-    '''Returns a list of all plant IDs '''
-    curr.execute("SELECT plant_id FROM gamma.plants")
-    return [int(r[0]) for r in curr.fetchall()]
-
-
-def get_current_plant_watering(curr, plant_id: int) -> dict | None:
-    """Returns the current data for a given plant_id or None if not found."""
-
-    try:
-        curr.execute(
-            "SELECT last_watering FROM gamma.plants WHERE plant_id = ?", (plant_id,))
-
-        result = curr.fetchone()
-
-    except Exception as err:
-        LOGGER.error(err)
-        return None
-
-    return result[0] if result else None
-
-
-def map_plant_to_most_recent_botanist(cursor):
-    '''Returns a mapping of all plants to the most recent botanist'''
-
-    query = """SELECT r.plant_id, r.botanist_id
-    FROM gamma.recordings r
-    JOIN (
-        SELECT plant_id, MAX(time_taken) AS max_time
-        FROM gamma.recordings
-        GROUP BY plant_id
-    ) recent ON r.plant_id = recent.plant_id AND r.time_taken = recent.max_time
-    """
-
-    cursor.execute(query)
-
-    rows = cursor.fetchall()
-
-    return {row[0]: row[1] for row in rows if row}
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
@@ -150,80 +110,8 @@ def get_origin_data(origin_location: list) -> dict | None:
     }
 
 
-def map_town_name_to_id(cursor) -> dict:
-    '''Return a dictionary mapping country codes to country_id'''
-    cursor.execute("SELECT town_name, town_id FROM gamma.regions")
-    rows = cursor.fetchall()
-
-    return {row[0]: row[1] for row in rows if row}
-
-
-def map_scientific_name_to_species_id(cursor) -> dict:
-    '''Return a dictionary mapping scientific_name to species_id'''
-
-    cursor.execute(
-        "SELECT plant_species_id, scientific_name FROM gamma.plant_species")
-
-    rows = cursor.fetchall()
-
-    return {row[1].lower().strip(): row[0] for row in rows if row}
-
-
-def map_common_name_to_species_id(cursor) -> dict:
-    '''Return a dictionary mapping common_name to species_id'''
-
-    cursor.execute(
-        "SELECT plant_species_id, common_name FROM gamma.plant_species")
-
-    rows = cursor.fetchall()
-
-    return {row[1].lower().strip(): row[0] for row in rows if row}
-
-
-def map_country_code_to_id(cursor) -> dict:
-    '''Return a dictionary mapping country codes to country_id'''
-    cursor.execute("SELECT country_code, country_id FROM gamma.countries")
-    rows = cursor.fetchall()
-
-    return {row[0]: row[1] for row in rows if row}
-
-
-def map_longitude_and_latitude_to_location_id(cursor) -> dict:
-    '''Return a dictionary mapping (longitude, latitude) tuples to origin_id'''
-    cursor.execute("SELECT longitude,latitude,location_id FROM gamma.origins")
-    rows = cursor.fetchall()
-    return {(row[0], row[1]): row[2] for row in rows}
-
-
-def map_continent_name_to_id(cursor) -> dict:
-    '''Return a dictionary mapping continent_names to continent_ids'''
-    cursor.execute("SELECT continent_name, continent_id FROM gamma.continents")
-    rows = cursor.fetchall()
-
-    return {row[0]: row[1] for row in rows if row}
-
-
-def get_botanist_id(cursor, botanist_data: dict) -> int | None:
-    '''Given information about a botanist, retrieve the botanist id from the dataframe. 
-    If the botanist is not currently in the database, return None'''
-
-    email = botanist_data["botanist_email"]
-
-    if email:
-        cursor.execute(
-            "SELECT botanist_id FROM gamma.botanists WHERE email = ?", (email,)
-        )
-    else:
-        cursor.execute(
-            "SELECT botanist_id FROM gamma.botanists WHERE first_name = ? AND last_name = ?",
-            (botanist_data["botanist_first_name"],
-             botanist_data["botanist_last_name"])
-        )
-
-    result = cursor.fetchone()
-
-    LOGGER.info("Botanist identified as %s", result)
-    return result[0] if result else None
+def transform_plant_data(extracted_data: list[dict]):
+    '''Transforms the extracted plant data'''
 
 
 if __name__ == "__main__":
@@ -236,7 +124,5 @@ if __name__ == "__main__":
     with get_connection() as conn:
 
         conn_cursor = conn.cursor()
-        map_country_code_to_id(conn_cursor)
-        get_botanist_id(conn_cursor, botanist)
 
         conn_cursor.close()
