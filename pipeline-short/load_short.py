@@ -5,7 +5,7 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data
+from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data, map_continent_name_to_id
 
 from logger import logger_setup
 from extract_short import extract
@@ -100,6 +100,7 @@ def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_wate
     country_code_to_country_id = map_country_code_to_id(cursor)
     town_name_to_region_id = map_town_name_to_id(cursor)
     common_name_to_species_id = map_common_name_to_species_id(cursor)
+    continent_name_to_continent_id = map_continent_name_to_id(cursor)
 
     if {"name", "origin_location"} not in set(plant_data.keys()):
         return None
@@ -109,14 +110,18 @@ def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_wate
 
     origin_data = get_origin_data(plant_data["origin_location"])
 
-    if (not origin_data) or (origin_data["country_code"] not in country_code_to_country_id.keys()):
+    if (not origin_data) or (origin_data["country_code"] not in country_code_to_country_id.keys()) or (origin_data["continent_name"] not in continent_name_to_continent_id.keys()):
         return None
 
     town_id = town_name_to_region_id.get(origin_data["town"])
     if not town_id:
-        town_id = insert_into_regions_table()
+        town_id = insert_into_regions_table(
+            cursor, origin_data["town"], continent_name_to_continent_id[origin_data["continent_name"]], country_code_to_country_id[origin_data["country_code"]])
 
-    location_id = insert_into_locations_table()
+    location_id = insert_into_locations_table(
+        cursor, origin_data["longitude"], origin_data["latitude"])
+
+    return (plant_id, location_id, species_id, last_watering)
 
 
 def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_botanist_id: int) -> tuple:
@@ -173,9 +178,19 @@ def insert_into_species_table(cursor, plant_data: dict, scientific_names_to_id: 
     return cursor.fetchone()[0]
 
 
-def insert_into_regions_table() -> int:
+def insert_into_regions_table(cursor, town: str, continent_id: int, country_id: int) -> int:
     '''Inserts into regions table and returns the new region id. 
     If a region already exists in the database, return the current region id'''
+    query_insert = """
+    INSERT INTO gamma.regions (town_name, continent_id, country_id)
+    VALUES (?, ?, ?);
+    
+    SELECT SCOPE_IDENTITY();
+    """
+    cursor.execute(query_insert, (town, continent_id, country_id))
+    cursor.commit()
+
+    return cursor.fetchone()[0]
 
 
 def insert_into_locations_table(cursor, longitude: float, latitude: float, town_id: int) -> int:
