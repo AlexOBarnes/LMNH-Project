@@ -1,8 +1,12 @@
+"""Test file for pipeline_long.py"""
+
 from unittest.mock import patch, MagicMock
 from pipeline_long import lambda_handler
 
 
 class TestPipeline:
+    """Unit tests for the AWS Lambda handler function in the long-term
+    ETL pipeline."""
 
     @patch("pipeline_long.extract_plant_data")
     @patch("pipeline_long.transform_data_to_csv")
@@ -10,6 +14,7 @@ class TestPipeline:
     @patch("pipeline_long.send_email")
     @patch.dict("os.environ", {"S3_BUCKET_NAME": "test-bucket", "S3_FOLDER_PATH": "test-folder"})
     def test_lambda_handler_success(self, mock_send_email, mock_upload_csv_to_s3, mock_transform_data_to_csv, mock_extract_plant_data):
+        """Tests successful execution of the ETL pipeline."""
 
         mock_extract_plant_data.return_value.empty = False
         mock_transform_data_to_csv.return_value = MagicMock()
@@ -33,6 +38,8 @@ class TestPipeline:
     @patch("pipeline_long.send_email")
     @patch.dict("os.environ", {"S3_BUCKET_NAME": "test-bucket", "S3_FOLDER_PATH": "test-folder"})
     def test_lambda_handler_no_data(self, mock_send_email, mock_extract_plant_data):
+        """Tests how the lambda handler function behaves when there is no
+        new data is available for processing."""
 
         mock_extract_plant_data.return_value.empty = True
 
@@ -52,6 +59,8 @@ class TestPipeline:
     @patch("pipeline_long.send_email")
     @patch.dict("os.environ", {"S3_BUCKET_NAME": "test-bucket", "S3_FOLDER_PATH": "test-folder"})
     def test_lambda_handler_upload_failure(self, mock_send_email, mock_upload_csv_to_s3, mock_transform_data_to_csv, mock_extract_plant_data):
+        """Tests how the lambda handler function behaves when the CSV upload
+        to S3 fails."""
 
         mock_extract_plant_data.return_value.empty = False
         mock_transform_data_to_csv.return_value = MagicMock()
