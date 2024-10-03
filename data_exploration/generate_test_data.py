@@ -9,7 +9,7 @@ import pandas as pd
 from pyodbc import connect
 from boto3 import client
 
-INVALID_KEYS = [7,10,13,15,18,23,24,27,37,40,43]
+INVALID_KEYS = [1,7,10,13,15,18,23,24,27,37,40,43]
 
 def get_connection():
     '''Returns a connection to the RDS database'''
@@ -38,6 +38,7 @@ def create_plant_dataframe(rows:int) -> pd.DataFrame:
     '''Returns a pandas dataframe containing fake data'''
     data = []
     valid_plant_ids = [i for i in range(50) if i not in INVALID_KEYS]
+    last_watered = datetime.now()-timedelta(days=1)
     for i in range(1, rows+1):
         timestamp = datetime.now()+timedelta(minutes=i)
         moisture= round(random.uniform(20.0, 80.0), 3)
@@ -45,12 +46,12 @@ def create_plant_dataframe(rows:int) -> pd.DataFrame:
         plant = random.choice(valid_plant_ids)
         botanist = random.randint(1, 3)
         data.append([i, timestamp,
-                    moisture, temperature, plant, botanist])
+                    moisture, temperature, plant, botanist,last_watered])
 
 
     return pd.DataFrame(data, columns=['recording_id', 'timestamp',
                                        'moisture', 'temperature',
-                                       'plant_id', 'botanist_id'])
+                                       'plant_id', 'botanist_id','last_watering'])
 
 def upload_data_csv(data: pd.DataFrame) -> None:
     '''Uploads data to S3 as a CSV'''
@@ -70,8 +71,8 @@ def upload_data_csv(data: pd.DataFrame) -> None:
 def upload_data_db(data: pd.DataFrame) -> None:
     '''Uploads data to the RDS database'''
     q = '''INSERT INTO gamma.recordings
-    (soil_moisture,temperature,plant_id,botanist_id)
-    VALUES (?,?,?,?)'''
+    (soil_moisture,temperature,plant_id,botanist_id,last_watering)
+    VALUES (?,?,?,?,?)'''
     plant_data = data.drop(columns=['recording_id','timestamp']).values.tolist()
     with get_connection() as conn:
         with conn.cursor() as cur:
