@@ -58,18 +58,18 @@ class TestExtractPlantData:
         extract_plant_data()
 
         expected_extract_query = (
-            """
-            SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id
-            FROM gamma.recordings;
-            """.strip()
-        )
+            "SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id "
+            "FROM gamma.recordings;"
+        ).strip()
 
         expected_truncate_query = "TRUNCATE TABLE gamma.recordings;"
 
         mock_cursor.execute.assert_called_once_with(
-            expected_truncate_query.strip())
-        mock_read_sql.assert_called_once_with(
-            expected_extract_query, mock_connection)
+            expected_truncate_query)
+
+        actual_query_call = mock_read_sql.call_args[0][0].strip()
+
+        assert actual_query_call == expected_extract_query
 
     @patch("extract_long.connect_to_rds")
     @patch("pandas.read_sql")

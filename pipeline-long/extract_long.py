@@ -22,10 +22,10 @@ def extract_plant_data() -> pd.DataFrame:
     """Extracts plant data older than 24 from the RDS and truncates the
     recordings table."""
 
-    extract_query = """
-    SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id
-    FROM gamma.recordings;
-    """
+    extract_query = (
+        "SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id "
+        "FROM gamma.recordings;"
+    ).strip()
 
     truncate_query = "TRUNCATE TABLE gamma.recordings;"
 
