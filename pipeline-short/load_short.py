@@ -5,13 +5,29 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import transform_plant_data
+from transform_short import transform_plant_data, get_connection
 
 from logger import logger_setup
 
 from extract_short import extract
 
 LOGGER = logging.getLogger(__name__)
+
+
+def load():
+    with get_connection() as conn:
+        extracted_data = extract()
+        plants_to_insert, locations_to_insert, readings_to_insert = transform_plant_data(
+            conn, extracted_data)
+        cur = conn.cursor()
+        insert_into_locations_table(locations_to_insert)
+        conn.commit()
+        insert_new_recordings(readings_to_insert)
+        conn.commit()
+        insert_new_plants(plants_to_insert)
+        conn.commit()
+
+        cur.close()
 
 
 def insert_new_recordings(cursor, recordings: list[tuple]):
@@ -54,11 +70,4 @@ def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
 if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
-    data = extract()
-
-    with get_connection() as conn:
-
-        conn_cursor = conn.cursor()
-        upsert_plants(conn, conn_cursor, data)
-        conn.commit()
-        conn_cursor.close()
+    load()
