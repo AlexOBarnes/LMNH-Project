@@ -31,7 +31,7 @@ bucket_name = 'c13-wshao-lmnh-long-term-storage'
 
 def list_csv_files():
     """List all CSV files in the S3 bucket."""
-    response = s3.list_objects_v2(Bucket=bucket_name)
+    response = s3.list_objects_v2(Bucket=bucket_name, Prefix="recordings/")
     files = [obj['Key'] for obj in response.get(
         'Contents', []) if obj['Key'].endswith('.csv')]
     return files
@@ -43,38 +43,70 @@ def read_historical_data_from_s3(file_key):
     return pd.read_csv(obj['Body'])
 
 
-def load_and_combine_historical_data(selected_plant, metric):
-    """Loads and combines historical data from multiple CSV files."""
+def load_historical_data(selected_plants, plant_name_map):
+    """Loads and combines historical data from multiple CSV files for selected plants."""
     files = list_csv_files()
+    relevant_files = [file for file in files if 'recordings/' in file]
+    print(plant_name_map)
+    data_frames = []
+    for file in relevant_files:
+        df = read_historical_data_from_s3(file)
+        # Convert timestamp to datetime
+        df['timestamp'] = pd.to_datetime(
+            df['timestamp'])
+        # Append to list of dataframes
+        data_frames.append(df)
 
-    # Filter the files to match the selected plant and metric
-    relevant_files = [
-        file for file in files if selected_plant in file and metric in file]
-
-    # Load and combine data from relevant files
-    data_frames = [read_historical_data_from_s3(
-        file) for file in relevant_files]
     combined_df = pd.concat(data_frames, ignore_index=True)
 
-    # Convert time_taken to datetime and set it as index
-    combined_df['time_taken'] = pd.to_datetime(combined_df['time_taken'])
-    combined_df.set_index('time_taken', inplace=True)
+    # Filter for selected plants
+    plant_ids = [id for id, name in plant_name_map.items()
+                 if name in selected_plants]
+    filtered_df = combined_df[combined_df['plant_id'].isin(plant_ids)]
 
+    return filtered_df
+
+
+def plot_moisture_chart(df, plant_name_map):
+    """Plots Altair chart for soil moisture."""
     # Resample to hourly average
-    hourly_avg = combined_df.resample('H').mean().reset_index()
+    hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
 
-    return hourly_avg
+    # Map plant_id to names for coloring
+    hourly_avg['plant_name'] = hourly_avg['plant_id'].map(plant_name_map)
 
-
-def plot_chart(df, title, y_column):
-    """Plots Altair charts."""
-    chart = alt.Chart(df).mark_line().encode(
-        x='time_taken:T',
-        y=alt.Y(y_column, title=y_column)
+    chart = alt.Chart(hourly_avg).mark_line().encode(
+        x='timestamp:T',
+        y='moisture:Q',
+        color='plant_name:N'  # Use plant names for color encoding
     ).properties(
-        title=title,
+        title="Historical Soil Moisture",
         width=600,
         height=400
+    ).configure_legend(
+        title=None
+    )
+    return chart
+
+
+def plot_temperature_chart(df, plant_name_map):
+    """Plots Altair chart for soil temperature."""
+    # Resample to hourly average
+    hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
+
+    # Map plant_id to names for coloring
+    hourly_avg['plant_name'] = hourly_avg['plant_id'].map(plant_name_map)
+
+    chart = alt.Chart(hourly_avg).mark_line().encode(
+        x='timestamp:T',
+        y='temperature:Q',
+        color='plant_name:N'  # Use plant names for color encoding
+    ).properties(
+        title="Historical Soil Temperature",
+        width=600,
+        height=400
+    ).configure_legend(
+        title=None
     )
     return chart
 
@@ -83,9 +115,12 @@ def plot_chart(df, title, y_column):
 plants = get_plant_names()  # Fetch plant names from the database
 selected_plants = st.sidebar.multiselect(
     'Select plant(s):',
-    plants,  # Use plant names for selection
-    default=plants[:2]  # Preselect first two plants for visualization
+    plants, default=plants[:]
 )
+
+# Create a mapping of plant names to IDs
+plant_name_map = {id: name for id, name in enumerate(
+    plants)}
 
 # Layout for today's data
 col1, col2 = st.columns(2)
@@ -108,24 +143,25 @@ with col2:
             st.line_chart(
                 today_temperature['temperature'], use_container_width=True)
 
+# Load historical data for selected plants
+historical_data = load_historical_data(selected_plants, plant_name_map)
+
 col1, col2 = st.columns(2)
 
 # Display historical Soil Moisture data
 with col1:
     st.subheader("Historical Soil Moisture")
-    if selected_plants:
-        for plant in selected_plants:
-            historical_soil_moisture = load_and_combine_historical_data(
-                plant, 'soil_moisture')
-            st.altair_chart(plot_chart(historical_soil_moisture,
-                            f"Historical Soil Moisture - {plant}", 'soil_moisture'))
+    if not historical_data.empty:
+        st.altair_chart(plot_moisture_chart(historical_data,
+                        plant_name_map), use_container_width=True)
+    else:
+        st.write("No historical data available for selected plants.")
 
 # Display historical Temperature data
 with col2:
     st.subheader("Historical Soil Temperature")
-    if selected_plants:
-        for plant in selected_plants:
-            historical_temperature = load_and_combine_historical_data(
-                plant, 'temperature')
-            st.altair_chart(plot_chart(
-                historical_temperature, f"Historical Soil Temperature - {plant}", 'temperature'))
+    if not historical_data.empty:
+        st.altair_chart(plot_temperature_chart(historical_data,
+                        plant_name_map), use_container_width=True)
+    else:
+        st.write("No historical data available for selected plants.")
