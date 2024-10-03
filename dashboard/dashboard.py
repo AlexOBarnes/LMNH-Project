@@ -4,7 +4,7 @@ from os import environ as ENV
 import streamlit as st
 import pandas as pd
 import altair as alt
-from sl_queries import get_today_data, get_plant_ids
+from sl_queries import get_today_data, get_plant_ids, fetch_plant_species_data
 from boto3 import client
 
 # Page configuration
@@ -77,10 +77,8 @@ def plot_moisture_chart(df, plant_name_map):
         hourly_avg['plant_id'] = hourly_avg['plant_id'].map(plant_name_map)
 
     chart = alt.Chart(hourly_avg).mark_line().encode(
-        x='timestamp:T',
+        x='time:T',
         y='moisture:Q',
-        # Use plant names for color encoding
-        color=alt.Color('plant_id:N')
     ).properties(
         title="Historical Soil Moisture",
         width=600,
@@ -98,10 +96,9 @@ def plot_temperature_chart(df, plant_name_map):
         # Map plant_id to names for coloring
         hourly_avg['plant_id'] = hourly_avg['plant_id'].map(plant_name_map)
 
-    chart = alt.Chart(hourly_avg).mark_line().encode(
-        x='timestamp:T',
+    chart = alt.Chart(hourly_avg).mark_line(color="#e3298c").encode(
+        x='time:T',
         y='temperature:Q',
-        color=alt.Color('plant_id:N')  # Use plant names for color encoding
     ).properties(
         title="Historical Soil Temperature",
         width=600,
@@ -120,35 +117,83 @@ selected_plant = st.sidebar.selectbox(
 # Create a mapping of plant names to IDs
 plant_name_map = {name: id for id, name in enumerate(plant_ids)}
 
+# Fetch plant species data for the selected plant
+species_data = fetch_plant_species_data(selected_plant)
+
+# Rename the columns for better readability
+species_data.columns = [
+    "Plant ID",
+    "Species ID",
+    "Common Name",
+    "Scientific Name",
+    "Last Watered"
+]
+
+# Display the species data as a table
+st.subheader("Plant Species Information")
+st.table(species_data)
+
 # Layout for today's data
+st.subheader("Today's Data")
 col1, col2 = st.columns(2)
 
 # Display today's Soil Moisture data
 with col1:
-    st.subheader("Today's Soil Moisture")
     if selected_plant:
         today_soil_moisture = get_today_data(selected_plant, 'soil_moisture')
-        st.line_chart(today_soil_moisture['soil_moisture'], use_container_width=True)
+
+        # Prepare the data for Altair
+        today_soil_moisture['time'] = pd.to_datetime(
+            # Ensure timestamp is in datetime format
+            today_soil_moisture['time'])
+
+        # Create an Altair chart for today's soil moisture
+        chart = alt.Chart(today_soil_moisture).mark_line().encode(  # Set the line color (change 'blue' as needed)
+            x='time:T',
+            y='moisture:Q'
+        ).properties(
+            title="Today's Soil Moisture",
+            width=600,
+            height=400
+        )
+
+        # Display the Altair chart in Streamlit
+        st.altair_chart(chart, use_container_width=True)
 
 # Display today's Temperature data
 with col2:
-    st.subheader("Today's Soil Temperature")
     if selected_plant:
         today_temperature = get_today_data(selected_plant, 'temperature')
-        st.line_chart(today_temperature['temperature'], use_container_width=True)
+
+        # Prepare the data for Altair
+        today_temperature['time'] = pd.to_datetime(
+            # Ensure timestamp is in datetime format
+            today_temperature['time'])
+
+        # Create an Altair chart for today's temperature
+        chart = alt.Chart(today_temperature).mark_line(color='#e3298c').encode(
+            x='time:T',
+            y='temperature:Q'
+        ).properties(
+            title="Today's Soil Temperature",
+            width=600,
+            height=400
+        )
+
+        # Display the Altair chart in Streamlit
+        st.altair_chart(chart, use_container_width=True)
 
 # Load historical data for selected plants
 historical_data = load_historical_data(selected_plant, plant_name_map)
 
+st.subheader("Historical Data")
 col1, col2 = st.columns(2)
 
 # Display historical Soil Moisture data
 with col1:
-    st.subheader("Historical Soil Moisture")
     st.altair_chart(plot_moisture_chart(historical_data, plant_name_map), use_container_width=True)
 
 
 # Display historical Temperature data
 with col2:
-    st.subheader("Historical Soil Temperature")
     st.altair_chart(plot_temperature_chart(historical_data, plant_name_map), use_container_width=True)

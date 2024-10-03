@@ -54,3 +54,17 @@ def get_plant_ids():
     with get_connection() as conn:
         df = pd.read_sql(query, conn)
     return df['plant_id'].tolist()
+
+
+def fetch_plant_species_data(selected_plant_id):
+    """Fetches plant species data based on selected plant ID."""
+    query = """
+    SELECT p.plant_id, sp.plant_species_id, sp.common_name, sp.scientific_name, p.last_watering 
+    FROM gamma.plants AS p
+    JOIN gamma.plant_species AS sp ON sp.plant_species_id = p.plant_species_id
+    WHERE p.plant_id = ?
+    """
+    with get_connection() as conn:
+        return pd.read_sql(query, conn, params=(selected_plant_id,))
+
+print(fetch_plant_species_data(1))

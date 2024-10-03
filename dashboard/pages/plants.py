@@ -21,7 +21,11 @@ def get_connection():
 
 def fetch_plant_data():
     '''Fetches plant species data from the database'''
-    query = "SELECT common_name, scientific_name FROM gamma.plant_species"
+    query = """
+    SELECT p.plant_id, ps.common_name, ps.scientific_name
+    FROM gamma.plants p
+    JOIN gamma.plant_species ps ON p.plant_species_id = ps.plant_species_id;
+    """
     with get_connection() as conn:
         return pd.read_sql(query, conn)
 
@@ -36,13 +40,13 @@ def run():
 
     # Rename columns
     plant_data.rename(columns={
+        "plant_id": "Plant ID",
         "common_name": "Common Name",
         "scientific_name": "Scientific Name"
     }, inplace=True)
 
-    # Display the plant data as a table
-    # Using st.table for full display without scrollbars
-    st.table(plant_data)
+    # Display the plant data as a table without the index
+    st.table(plant_data.reset_index(drop=True))
 
 
 if __name__ == "__main__":
