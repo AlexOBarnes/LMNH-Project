@@ -1,3 +1,4 @@
+# pylint: disable=E0611
 """This script contains the queries for recent and historical data."""
 
 from os import environ as ENV
@@ -27,7 +28,7 @@ def get_plants_dict():
             result = cur.fetchall()
             species_dict = {
                 row.common_name: row.plant_species_id for row in result}
-    
+
     return species_dict
 
 
@@ -54,3 +55,17 @@ def get_plant_ids():
     with get_connection() as conn:
         df = pd.read_sql(query, conn)
     return df['plant_id'].tolist()
+
+
+def fetch_plant_species_data(selected_plant_id):
+    """Fetches plant species data based on selected plant ID."""
+    query = """
+    SELECT TOP 1 p.plant_id, sp.plant_species_id, sp.common_name, sp.scientific_name, r.last_watering 
+    FROM gamma.plants AS p
+    JOIN gamma.plant_species AS sp ON sp.plant_species_id = p.plant_species_id
+    JOIN gamma.recordings AS r ON p.plant_id = r.plant_id
+    WHERE p.plant_id = ?
+    ORDER BY r.last_watering DESC
+    """
+    with get_connection() as conn:
+        return pd.read_sql(query, conn, params=(selected_plant_id,))

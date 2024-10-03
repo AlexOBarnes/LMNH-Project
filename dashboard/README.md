@@ -10,6 +10,10 @@ The dashboard will allow stakeholders to:
 
 The dashboard is built using Streamlit, which enables interactive and responsive visualisations for users to track plant health trends and spot any potential issues early.
 
+## Dashboard wireframe
+
+![Dashboard Wireframe](wireframe.png)
+
 ## Installation and Setup Instructions
 
 ### 1. **Repository Structure**
