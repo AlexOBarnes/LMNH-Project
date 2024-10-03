@@ -2,8 +2,8 @@
 and uploading to S3."""
 
 from os import environ as ENV
-from dotenv import load_dotenv
 from datetime import datetime
+from dotenv import load_dotenv
 
 from extract_long import connect_to_rds, extract_plant_data
 from transform_long import transform_data_to_csv
