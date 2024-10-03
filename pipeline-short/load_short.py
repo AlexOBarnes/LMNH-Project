@@ -26,12 +26,13 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
     plants_to_insert = []
     for plant in plant_data:
 
-        try:
-            plant_id = plant["plant_id"]
-
-        except:
+        if "plant_id" not in plant or not plant["plant_id"]:
             continue
 
+        try:
+            plant_id = int(plant["plant_id"])
+        except:
+            continue
         new_plant = upsert_plant_table(curr, plant, plant_id)
 
         if new_plant is not None:
