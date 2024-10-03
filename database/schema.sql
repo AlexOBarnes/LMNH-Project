@@ -59,7 +59,6 @@ CREATE TABLE gamma.botanists (
 CREATE TABLE gamma.plants (
     plant_id INT NOT NULL UNIQUE,
     location_id INT NOT NULL,
-    last_watering DATETIME NOT NULL CHECK (last_watering <= CURRENT_TIMESTAMP),
     plant_species_id INT NOT NULL,
     PRIMARY KEY(plant_id),
     FOREIGN KEY(location_id) REFERENCES gamma.origins(location_id),
@@ -71,6 +70,7 @@ CREATE TABLE gamma.recordings (
     time_taken DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP CHECK (time_taken <= CURRENT_TIMESTAMP),
     soil_moisture FLOAT(53) NOT NULL,
     temperature FLOAT(53) NOT NULL,
+    last_watering DATETIME NOT NULL CHECK (last_watering <= CURRENT_TIMESTAMP),
     plant_id INT NOT NULL,
     botanist_id INT NOT NULL,
     PRIMARY KEY(recording_id),
