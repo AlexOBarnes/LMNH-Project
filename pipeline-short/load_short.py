@@ -61,7 +61,7 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
     '''Given a list of tuples of the form
       (time_taken, soil_moisture, temperature, plant_id, botanist_id)
       insert the new recordings into the database.'''
-
+    print(recordings)
     cursor.executemany("""
     INSERT INTO gamma.recordings
         (time_taken, soil_moisture,temperature,plant_id,botanist_id)
