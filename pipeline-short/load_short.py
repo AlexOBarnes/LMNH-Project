@@ -106,7 +106,7 @@ def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_wate
         return None
 
     species_id = insert_into_species_table(
-        cursor, plant_data, scientific_name_to_species_id, common_name_to_species_id)
+        cursor, plant_data, scientific_name_to_species_id, common_name_to_species_id, plant_data["name"])
 
     origin_data = get_origin_data(plant_data["origin_location"])
 
