@@ -2,11 +2,13 @@
 and uploading to S3."""
 
 from os import environ as ENV
+from datetime import datetime
 from dotenv import load_dotenv
 
-from extract import connect_to_rds, extract_plant_data
-from transform import transform_data_to_csv
-from load import upload_csv_to_s3
+from extract_long import connect_to_rds, extract_plant_data
+from transform_long import transform_data_to_csv
+from load_long import upload_csv_to_s3
+from send_email import send_email
 
 
 def lambda_handler(event, context):
@@ -18,6 +20,10 @@ def lambda_handler(event, context):
     db_name = ENV["DB_NAME"]
     bucket_name = ENV["S3_BUCKET_NAME"]
     bucket_folder_name = ENV["S3_FOLDER_PATH"]
+
+    current_date = datetime.now().strftime("%d-%m-%Y")
+
+    send_email(is_start=True, date=current_date)
 
     conn = connect_to_rds(db_host, db_user, db_password, db_name)
     if conn is None:
@@ -31,7 +37,8 @@ def lambda_handler(event, context):
 
     try:
         upload_csv_to_s3(csv_buffer, bucket_name, bucket_folder_name)
-        return {"status_code": 200, "body": "CSV uploaded successfully."}
+        send_email(is_start=False, date=current_date)
+        return {"status_code": 200, "body": "CSV uploaded successfully and email sent."}
     except Exception as e:
         return {"status_code": 500, "body": f"Failed tp upload CSV to S3: {e}"}
 
