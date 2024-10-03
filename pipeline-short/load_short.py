@@ -120,6 +120,7 @@ def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
 
 def insert_new_plant(cursor, plant_dict):
     '''Using a plant dictionary, inserts a new plant.'''
+
     cursor.execute(
         """
             INSERT INTO gamma.plants (plant_id, name, last_watering)

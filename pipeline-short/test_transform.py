@@ -1,6 +1,43 @@
 # pylint: skip-file
 import pytest
-from transform_short import split_name
+from transform_short import split_name, get_origin_data, validate_latitude, validate_longitude
+
+
+def test_validate_longitude():
+    assert validate_longitude("0") == True
+    assert validate_longitude("-180") == True
+    assert validate_longitude("180") == True
+    assert validate_longitude("200") == False
+    assert validate_longitude("-181") == False
+    assert validate_longitude("abc") == False
+
+
+def test_validate_latitude():
+    assert validate_latitude("0") == True
+    assert validate_latitude("-90") == True
+    assert validate_latitude("90") == True
+    assert validate_latitude("100") == False
+    assert validate_latitude("-91") == False
+    assert validate_latitude("xyz") == False
+
+
+def test_get_origin_data():
+    '''Tests that valid origin data is reformatted correctly'''
+    origin_location = ["30", "-40", "Town", "US", "United States/USA"]
+    expected_output = {
+        "longitude": 30.0,
+        "latitude": -40.0,
+        "town": "Town",
+        "country_code": "US",
+        "country_name": "United States"
+    }
+    assert get_origin_data(origin_location) == expected_output
+
+
+def test_get_origin_data_invalid():
+    '''Tests that invalid origin data returns None'''
+    origin_location = ["30", "-400", "Town", "US", "United States/USA"]
+    assert get_origin_data(origin_location) is None
 
 
 def test_split_name_standard():

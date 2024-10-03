@@ -101,6 +101,49 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
     }
 
 
+def validate_longitude(longitude: str) -> bool:
+    '''Return True if a longitude string is valid'''
+    try:
+        lon = float(longitude)
+        return -180 <= lon <= 180
+    except ValueError:
+        return False
+
+
+def validate_latitude(latitude: str) -> bool:
+    '''Return True if a latitude string is valid'''
+    try:
+        lat = float(latitude)
+        return -90 <= lat <= 90
+    except ValueError:
+        return False
+
+
+def get_origin_data(origin_location: list) -> dict | None:
+    '''Formats the extracted json to get available origin data. 
+    Returns None if a required field is missing or invalid'''
+
+    if not len(origin_location) == 5:
+        return None
+
+    lon, lat = origin_location[0], origin_location[1]
+    town = origin_location[2]
+    country_code = origin_location[3]
+    country_name = origin_location[4]
+
+    if (not validate_latitude(lat)) or (not validate_longitude(lon)) or not all(
+            isinstance(x, str) for x in [town, country_code, country_name]):
+        return None
+
+    return {
+        "longitude": float(lon),
+        "latitude": float(lat),
+        "town": town.strip(),
+        "country_code": country_code.upper().strip(),
+        "country_name": country_name.split("/")[0].strip()
+    }
+
+
 def get_botanist_id(cursor, botanist_data: dict) -> int | None:
     '''Given information about a botanist, retrieve the botanist id from the dataframe. 
     If the botanist is not currently in the database, return None'''

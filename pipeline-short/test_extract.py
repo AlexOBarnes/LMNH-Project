@@ -10,7 +10,7 @@ from extract_short import get_url, validate_response, get_num_plants
 MOCK_BASE_URL = "https://api.example.com"
 
 
-@patch("extract.BASE_URL", MOCK_BASE_URL)
+@patch("extract_short.BASE_URL", MOCK_BASE_URL)
 def test_get_url_with_valid_id():
     """Tests get_url function with a valid plant ID."""
 
@@ -38,8 +38,8 @@ def test_validate_response():
     assert validate_response(response) is True
 
 
-@patch("extract.requests.get")
-@patch("extract.BASE_URL", MOCK_BASE_URL)
+@patch("extract_short.requests.get")
+@patch("extract_short.BASE_URL", MOCK_BASE_URL)
 def test_get_num_plants_success(mock_get):
     """Tests get_num_plants with a successful API response."""
 
