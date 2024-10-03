@@ -23,13 +23,13 @@ def test_validate_latitude():
 
 def test_get_origin_data():
     '''Tests that valid origin data is reformatted correctly'''
-    origin_location = ["30", "-40", "Town", "US", "United States/USA"]
+    origin_location = ["30", "-40", "Town", "US", "North America/USA"]
     expected_output = {
         "longitude": 30.0,
         "latitude": -40.0,
         "town": "Town",
         "country_code": "US",
-        "country_name": "United States"
+        "continent_name": "North America"
     }
     assert get_origin_data(origin_location) == expected_output
 

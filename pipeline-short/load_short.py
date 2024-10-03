@@ -5,9 +5,10 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data, map_continent_name_to_id
+from transform_short import map_plant_to_most_recent_botanist, get_current_plant_watering, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id, get_origin_data, map_continent_name_to_id
 
 from logger import logger_setup
+
 from extract_short import extract
 
 LOGGER = logging.getLogger(__name__)
@@ -50,18 +51,20 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
         recordings_to_insert.append(get_new_recording_table_entry(
             curr, plant_id, plant, last_botanist))
 
-    insert_new_plants(curr, plants_to_insert)
-    insert_new_recordings(curr, recordings_to_insert)
+    if plants_to_insert:
+        insert_new_plants(curr, plants_to_insert)
+    if recordings_to_insert:
+        insert_new_recordings(curr, recordings_to_insert)
 
 
 def insert_new_recordings(cursor, recordings: list[tuple]):
     '''Given a list of tuples of the form
-      (time, soil_moisture, temperature, plant_id, botanist_id)
+      (time_taken, soil_moisture, temperature, plant_id, botanist_id)
       insert the new recordings into the database.'''
 
     cursor.executemany("""
     INSERT INTO gamma.recordings
-        (time, soil_moisture,temperature,plant_id,botanist_id)
+        (time_taken, soil_moisture,temperature,plant_id,botanist_id)
     VALUES 
         (?,?,?,?,?)
     """, recordings)
@@ -78,18 +81,15 @@ def upsert_plant_table(curr, plant, plant_id: int) -> tuple | None:
     last_watered = dt.strptime(
         last_watered, '%a, %d %b %Y %H:%M:%S %Z') if last_watered else None
 
-    current_plant = get_current_plant_properties(curr, plant_id)
+    current_plant_watering = get_current_plant_watering(curr, plant_id)
 
-    if not current_plant:
+    if not current_plant_watering:
         return get_new_plant_table_entry(curr, plant, plant_id, last_watered)
 
-    curr_last_watered = current_plant["last_watering"]
+    if not last_watered:
+        last_watered = current_plant_watering
 
-    if not curr_last_watered and not last_watered:
-        return
-
-    if last_watered:
-        update_plant_watered(curr, plant_id, last_watered)
+    update_plant_watered(curr, plant_id, last_watered)
     return None
 
 
@@ -134,7 +134,7 @@ def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_
 
     botanist_details = get_botanist_data(plant_data["botanist"])
 
-    existing_id = get_botanist_id(botanist_details, botanist_details)
+    existing_id = get_botanist_id(cursor, botanist_details)
 
     if botanist_details is None and last_botanist_id is not None:
 
@@ -261,5 +261,5 @@ if __name__ == "__main__":
 
         conn_cursor = conn.cursor()
         upsert_plants(conn_cursor, data)
-
+        conn_cursor.commit()
         conn_cursor.close()

@@ -49,12 +49,12 @@ def split_name(name: str) -> list[str]:
     return [name, ""]
 
 
-def get_current_plant_properties(curr, plant_id: int) -> dict | None:
+def get_current_plant_watering(curr, plant_id: int) -> dict | None:
     """Returns the current data for a given plant_id or None if not found."""
 
     try:
         curr.execute(
-            "SELECT location_id, last_watering,plant_species_id FROM gamma.plants WHERE plant_id = ?", (plant_id,))
+            "SELECT last_watering FROM gamma.plants WHERE plant_id = ?", (plant_id,))
 
         result = curr.fetchone()
 
@@ -62,7 +62,7 @@ def get_current_plant_properties(curr, plant_id: int) -> dict | None:
         LOGGER.error(err)
         return None
 
-    return result
+    return result[0] if result else None
 
 
 def map_plant_to_most_recent_botanist(cursor):
@@ -81,7 +81,7 @@ def map_plant_to_most_recent_botanist(cursor):
 
     rows = cursor.fetchall()
 
-    return {row[0].plant_id: row[1].botanist_id for row in rows if row}
+    return {row[0]: row[1] for row in rows if row}
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
