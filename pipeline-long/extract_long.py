@@ -17,19 +17,25 @@ def connect_to_rds():
                    f"PWD={ENV['DB_PASSWORD']}")
 
 
-def extract_plant_data() -> list[dict[str, any]]:
-    """Extracts plant data older than 24 from the RDS."""
+def extract_plant_data() -> pd.DataFrame:
+    """Extracts plant data older than 24 from the RDS and truncates the
+    recordings table."""
 
-    query = """
+    extract_query = """
     SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id
     FROM gamma.recordings;
     """
 
-    with connect_to_rds() as conn:
-        df = pd.read_sql(query, conn)
-        data = df.to_dict(orient='records')
+    truncate_query = "TRUNCATE TABLE gamma.recordings;"
 
-    return data
+    with connect_to_rds() as conn:
+        df = pd.read_sql(extract_query, conn)
+
+        with conn.cursor() as cur:
+            cur.execute(truncate_query)
+            conn.commit()
+
+    return df
 
 
 if __name__ == "__main__":
@@ -38,9 +44,9 @@ if __name__ == "__main__":
 
     plant_data = extract_plant_data()
 
-    if plant_data:
-        for row in plant_data[:5]:
-            print(row)
+    if not plant_data.empty:
+        for i in range(len(plant_data)):
+            print(plant_data.iloc[i])
 
     else:
         print("No data extracted.")

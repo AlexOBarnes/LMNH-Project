@@ -5,7 +5,7 @@ from os import environ as ENV
 from datetime import datetime
 from dotenv import load_dotenv
 
-from extract_long import connect_to_rds, extract_plant_data
+from extract_long import extract_plant_data
 from transform_long import transform_data_to_csv
 from load_long import upload_csv_to_s3
 from send_email import send_email
@@ -21,12 +21,8 @@ def lambda_handler(event, context):
 
     send_email(is_start=True, date=current_date)
 
-    conn = connect_to_rds()
-    if conn is None:
-        return {"status_code": 500, "message": "Failed to connect to RDS"}
-
     plant_data = extract_plant_data()
-    if not plant_data:
+    if plant_data.empty:
         return {"status_code": 204, "message": "No new data to process."}
 
     csv_buffer = transform_data_to_csv(plant_data)
@@ -36,7 +32,7 @@ def lambda_handler(event, context):
         send_email(is_start=False, date=current_date)
         return {"status_code": 200, "body": "CSV uploaded successfully and email sent."}
     except Exception as e:
-        return {"status_code": 500, "body": f"Failed tp upload CSV to S3: {e}"}
+        return {"status_code": 500, "body": f"Failed to upload CSV to S3: {e}"}
 
 
 if __name__ == "__main__":
