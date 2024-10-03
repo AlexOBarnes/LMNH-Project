@@ -43,26 +43,18 @@ def map_town_name_to_id(cursor) -> dict:
     return {row[0]: row[1] for row in rows if row}
 
 
-def map_scientific_name_to_species_id(cursor) -> dict:
+def map_species_names_to_species_id(cursor) -> dict:
     '''Return a dictionary mapping scientific_name to species_id'''
 
     cursor.execute(
-        "SELECT plant_species_id, scientific_name FROM gamma.plant_species")
+        "SELECT plant_species_id, scientific_name, common_name FROM gamma.plant_species")
 
     rows = cursor.fetchall()
 
-    return {row[1].strip(): row[0] for row in rows if row}
-
-
-def map_common_name_to_species_id(cursor) -> dict:
-    '''Return a dictionary mapping common_name to species_id'''
-
-    cursor.execute(
-        "SELECT plant_species_id, common_name FROM gamma.plant_species")
-
-    rows = cursor.fetchall()
-
-    return {row[1].strip(): row[0] for row in rows if row}
+    return {
+        "scientific_name": {row[1].strip().title(): row[0] for row in rows if row},
+        "common_name": {row[2].strip().title(): row[0] for row in rows if row}
+    }
 
 
 def map_country_code_to_id(cursor) -> dict:
