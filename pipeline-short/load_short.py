@@ -5,7 +5,8 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection
+from transform_short import map_plant_to_most_recent_botanist, get_current_plant_properties, get_botanist_data, get_botanist_id, get_connection, map_scientific_name_to_species_id, map_country_code_to_id, map_town_name_to_id, map_common_name_to_species_id
+
 from logger import logger_setup
 from extract_short import extract
 
@@ -21,20 +22,26 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
     plant_to_botanist = map_plant_to_most_recent_botanist(curr)
 
     recordings_to_insert = []
+    plants_to_insert = []
     for plant in plant_data:
 
         try:
             plant_id = plant["plant_id"]
+
         except:
             continue
 
-        upsert_plant_table(curr, plant, plant_id)
+        new_plant = upsert_plant_table(curr, plant, plant_id)
+        if new_plant is not None:
+            plants_to_insert.append(new_plant)
 
         if not (
                 plant.get('soil_moisture') or plant.get("temperature")
         ) or not plant.get("botanist"):
+
             LOGGER.info(
                 "Not enough information to insert a new recording.")
+
             continue
 
         last_botanist = plant_to_botanist.get(plant_id)
@@ -59,8 +66,10 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
     cursor.commit()
 
 
-def upsert_plant_table(curr, plant, plant_id) -> None:
-    '''Updates or inserts into the plant table'''
+def upsert_plant_table(curr, plant, plant_id: int) -> tuple | None:
+    '''Decides whether to update or insert into the plant table.
+    Returns the tuple to insert if a plant needs to be inserted and None otherwise.
+    If a plant needs to be updated, this is handled immediately.'''
 
     last_watered = plant.get("last_watered")
 
@@ -70,7 +79,7 @@ def upsert_plant_table(curr, plant, plant_id) -> None:
     current_plant = get_current_plant_properties(curr, plant_id)
 
     if not current_plant:
-        insert_new_plant(curr, plant)
+        return get_new_plant_table_entry(curr, plant, plant_id, last_watered)
 
     curr_last_watered = current_plant["last_watering"]
 
@@ -79,6 +88,15 @@ def upsert_plant_table(curr, plant, plant_id) -> None:
 
     if last_watered:
         update_plant_watered(curr, plant_id, last_watered)
+        return False
+
+
+def get_new_plant_table_entry(cursor, plant_data: dict, plant_id: int, last_watering: dt):
+    '''Generates a tuple containing (plant_id, location_id, plant_species_id, last_watering)'''
+    scientific_name_to_species_id = map_scientific_name_to_species_id(cursor)
+    country_code_to_country_id = map_country_code_to_id(cursor)
+    town_name_to_region_id = map_town_name_to_id(cursor)
+    common_name_to_species_id = map_common_name_to_species_id(cursor)
 
 
 def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_botanist_id: int) -> tuple:
@@ -105,6 +123,36 @@ def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_
     return (recording_taken, plant_data["soil_moisture"], plant_data["temperature"], plant_id, botanist_id)
 
 
+def insert_into_species_table(cursor, plant_data: dict, scientific_names_to_id: dict, common_names_to_id: dict, common_name: str) -> int:
+    '''Returns the details needed to insert information into the species_id table as a tuple and returns the new ID
+    If a species already exists, return the existing species_id
+    If a species does not exist, and plant_data doesn't have a scientific name, this defaults to the common name. '''
+    scientific_names = list(plant_data.get('scientific_name', []))
+
+    for name in [common_name, *scientific_names]:
+        match = scientific_names_to_id.get(name.lower().strip(), False)
+
+        match = match if match else common_names_to_id.get(
+            name.lower.strip(), False)
+
+        if match:
+            return match
+
+    query = """
+    INSERT INTO gamma.species (common_name, scientific_name)
+    VALUES (?, ?);
+    
+    SELECT SCOPE_IDENTITY();
+    """
+    scientific_name = scientific_names[0].strip(
+    ).title() if scientific_names else common_name.title()
+
+    cursor.execute(query, (common_name.title(), scientific_name))
+
+    cursor.commit()
+    return cursor.fetchone()[0]
+
+
 def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
     '''Update a plant's last_watering entry'''
 
@@ -116,19 +164,20 @@ def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
             """,
         (new_last_watered, plant_id_to_update)
     )
+    cursor.commit()
 
 
-def insert_new_plant(cursor, plant_dict):
-    '''Using a plant dictionary, inserts a new plant.'''
+def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
+    '''Using a list of tuples containing (plant_id, location_id, plant_species_id,last_watering), inserts many new plants.'''
 
-    cursor.execute(
+    cursor.execute_many(
         """
-            INSERT INTO gamma.plants (plant_id, name, last_watering)
-            VALUES (?, ?, ?)
+            INSERT INTO gamma.plants (plant_id, location_id, plant_species_id,last_watering)
+            VALUES (?, ?, ?, ?)
             """,
-        (plant_dict['plant_id'], plant_dict['name'],
-         plant_dict.get('last_watered'))
+        (plant_data_to_insert)
     )
+    cursor.commit()
 
 
 def insert_new_botanist(cursor, botanist_data: dict) -> int:

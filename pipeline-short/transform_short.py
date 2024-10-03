@@ -152,6 +152,28 @@ def map_town_name_to_id(cursor) -> dict:
     return {row[0]: row[1] for row in rows if row}
 
 
+def map_scientific_name_to_species_id(cursor) -> dict:
+    '''Return a dictionary mapping scientific_name to species_id'''
+
+    cursor.execute(
+        "SELECT plant_species_id, scientific_name FROM gamma.plant_species")
+
+    rows = cursor.fetchall()
+
+    return {row[1].lower().strip(): row[0] for row in rows if row}
+
+
+def map_common_name_to_species_id(cursor) -> dict:
+    '''Return a dictionary mapping common_name to species_id'''
+
+    cursor.execute(
+        "SELECT plant_species_id, common_name FROM gamma.plant_species")
+
+    rows = cursor.fetchall()
+
+    return {row[1].lower().strip(): row[0] for row in rows if row}
+
+
 def map_country_code_to_id(cursor) -> dict:
     '''Return a dictionary mapping country codes to country_id'''
     cursor.execute("SELECT country_code, country_id FROM gamma.countries")
