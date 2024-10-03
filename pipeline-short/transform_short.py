@@ -9,7 +9,6 @@ import pyodbc
 from dotenv import load_dotenv
 
 from logger import logger_setup
-from extract_short import extract
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,124 +32,6 @@ def get_connection():
     except Exception as err:
         LOGGER.error(f"Error connecting to RDS %s: ", err)
         raise err
-
-
-def upsert_plants(curr, plant_data: list[dict]) -> None:
-    """Inserts new plants into the database or updates existing ones with 
-    a new watering time. 
-
-    If a plant has a new recording, this is added."""
-
-    plant_to_botanist = map_plant_to_most_recent_botanist(curr)
-
-    recordings_to_insert = []
-    for plant in plant_data:
-
-        try:
-            plant_id = plant["plant_id"]
-        except:
-            continue
-
-        upsert_plant_table(curr, plant, plant_id)
-
-        if not (
-                plant.get('soil_moisture') or plant.get("temperature")
-        ) or not plant.get("botanist"):
-            LOGGER.info(
-                "Not enough information to insert a new recording.")
-            continue
-
-        last_botanist = plant_to_botanist.get(plant_id)
-
-        recordings_to_insert.append(get_new_recording_table_entry(
-            curr, plant_id, plant, last_botanist))
-
-    insert_new_recordings(curr, recordings_to_insert)
-
-
-def insert_new_recordings(cursor, recordings: list[tuple]):
-    '''Given a list of tuples of the form
-      (time, soil_moisture, temperature, plant_id, botanist_id)
-      insert the new recordings into the database.'''
-
-    cursor.execute_many("""
-    INSERT INTO gamma.recordings
-        (time, soil_moisture,temperature,plant_id,botanist_id)
-    VALUES 
-        (?,?,?,?,?)
-    """, recordings)
-    cursor.commit()
-
-
-def upsert_plant_table(curr, plant, plant_id) -> None:
-    '''Updates or inserts into the plant table'''
-
-    last_watered = plant.get("last_watered")
-
-    last_watered = dt.strptime(
-        last_watered, '%a, %d %b %Y %H:%M:%S %Z') if last_watered else None
-
-    current_plant = get_current_plant_properties(curr, plant_id)
-
-    if not current_plant:
-        insert_new_plant(curr, plant)
-
-    curr_last_watered = current_plant["last_watering"]
-
-    if not curr_last_watered and not last_watered:
-        return
-
-    if last_watered:
-        update_plant_watered(curr, plant_id, last_watered)
-
-
-def get_new_recording_table_entry(cursor, plant_id: int, plant_data: dict, last_botanist_id: int) -> tuple:
-    '''Returns the details needed to update the recording table.'''
-
-    recording_taken = plant_data.get("recording_taken")
-
-    recording_taken = dt.strptime(
-        recording_taken, '%Y-%m-%d %H:%M:%S') if recording_taken else dt.now()
-
-    botanist_details = get_botanist_data(plant_data["botanist"])
-
-    existing_id = get_botanist_id(botanist_details, botanist_details)
-
-    if botanist_details is None and last_botanist_id is not None:
-
-        botanist_id = last_botanist_id
-
-    elif existing_id:
-        botanist_id = existing_id
-    else:
-        botanist_id = insert_new_botanist(cursor, botanist_details)
-
-    return (recording_taken, plant_data["soil_moisture"], plant_data["temperature"], plant_id, botanist_id)
-
-
-def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
-    '''Update a plant's last_watering entry'''
-
-    cursor.execute(
-        """
-            UPDATE gamma.plants
-            SET last_watering = ?
-            WHERE plant_id = ?
-            """,
-        (new_last_watered, plant_id_to_update)
-    )
-
-
-def insert_new_plant(cursor, plant_dict):
-    '''Using a plant dictionary, inserts a new plant.'''
-    cursor.execute(
-        """
-            INSERT INTO gamma.plants (plant_id, name, last_watering)
-            VALUES (?, ?, ?)
-            """,
-        (plant_dict['plant_id'], plant_dict['name'],
-         plant_dict.get('last_watered'))
-    )
 
 
 def is_valid_email(email: str) -> bool:
@@ -190,17 +71,17 @@ def map_plant_to_most_recent_botanist(cursor):
     query = """SELECT r.plant_id, r.botanist_id
     FROM gamma.recordings r
     JOIN (
-        SELECT plant_id, MAX(time) AS max_time
+        SELECT plant_id, MAX(time_taken) AS max_time
         FROM gamma.recordings
         GROUP BY plant_id
-    ) recent ON r.plant_id = recent.plant_id AND r.time = recent.max_time
+    ) recent ON r.plant_id = recent.plant_id AND r.time_taken = recent.max_time
     """
 
     cursor.execute(query)
 
     rows = cursor.fetchall()
 
-    return {row[0].plant_id: row[1].botanist_id for row in rows}
+    return {row[0].plant_id: row[1].botanist_id for row in rows if row}
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
@@ -218,6 +99,95 @@ def get_botanist_data(botanist_data: dict) -> dict | None:
         "botanist_last_name": names[1],
         "botanist_phone": botanist_data.get("phone", None)
     }
+
+
+def validate_longitude(longitude: str) -> bool:
+    '''Return True if a longitude string is valid'''
+    try:
+        lon = float(longitude)
+        return -180 <= lon <= 180
+    except ValueError:
+        return False
+
+
+def validate_latitude(latitude: str) -> bool:
+    '''Return True if a latitude string is valid'''
+    try:
+        lat = float(latitude)
+        return -90 <= lat <= 90
+    except ValueError:
+        return False
+
+
+def get_origin_data(origin_location: list) -> dict | None:
+    '''Formats the extracted json to get available origin data. 
+    Returns None if a required field is missing or invalid'''
+
+    if not len(origin_location) == 5:
+        return None
+
+    lon, lat = origin_location[0], origin_location[1]
+    town = origin_location[2]
+    country_code = origin_location[3]
+    continent_name = origin_location[4]
+
+    if (not validate_latitude(lat)) or (not validate_longitude(lon)) or not all(
+            isinstance(x, str) for x in [town, country_code, continent_name]):
+        return None
+
+    return {
+        "longitude": float(lon),
+        "latitude": float(lat),
+        "town": town.strip(),
+        "country_code": country_code.upper().strip(),
+        "continent_name": continent_name.split("/")[0].strip()
+    }
+
+
+def map_town_name_to_id(cursor) -> dict:
+    '''Return a dictionary mapping country codes to country_id'''
+    cursor.execute("SELECT town_name, town_id FROM gamma.regions")
+    rows = cursor.fetchall()
+
+    return {row[0]: row[1] for row in rows if row}
+
+
+def map_scientific_name_to_species_id(cursor) -> dict:
+    '''Return a dictionary mapping scientific_name to species_id'''
+
+    cursor.execute(
+        "SELECT plant_species_id, scientific_name FROM gamma.plant_species")
+
+    rows = cursor.fetchall()
+
+    return {row[1].lower().strip(): row[0] for row in rows if row}
+
+
+def map_common_name_to_species_id(cursor) -> dict:
+    '''Return a dictionary mapping common_name to species_id'''
+
+    cursor.execute(
+        "SELECT plant_species_id, common_name FROM gamma.plant_species")
+
+    rows = cursor.fetchall()
+
+    return {row[1].lower().strip(): row[0] for row in rows if row}
+
+
+def map_country_code_to_id(cursor) -> dict:
+    '''Return a dictionary mapping country codes to country_id'''
+    cursor.execute("SELECT country_code, country_id FROM gamma.countries")
+    rows = cursor.fetchall()
+
+    return {row[0]: row[1] for row in rows if row}
+
+
+def map_continent_name_to_id(cursor) -> dict:
+    '''Return a dictionary mapping continent_names to continent_ids'''
+    cursor.execute("SELECT continent_name, continent_id FROM gamma.continents")
+    rows = cursor.fetchall()
+
+    return {row[0]: row[1] for row in rows if row}
 
 
 def get_botanist_id(cursor, botanist_data: dict) -> int | None:
@@ -238,33 +208,22 @@ def get_botanist_id(cursor, botanist_data: dict) -> int | None:
         )
 
     result = cursor.fetchone()
+
+    LOGGER.info("Botanist identified as %s", result)
     return result[0] if result else None
-
-
-def insert_new_botanist(cursor, botanist_data: dict) -> int:
-    '''Given information about a botanist, insert a new botanist and return the new ID. '''
-    query = """
-    INSERT INTO gamma.botanists (first_name, last_name, email, phone)
-    VALUES (?, ?, ?, ?);
-    
-    SELECT SCOPE_IDENTITY();
-    """
-    cursor.execute(
-        query, (botanist_data['botanist_first_name'], botanist_data['botanist_last_name'], botanist_data['botanist_email'], botanist_data['botanist_phone']))
-
-    cursor.commit()
-    return cursor.fetchone()[0]
 
 
 if __name__ == "__main__":
     load_dotenv()
     logger_setup("log_transform.log", "logs")
 
-    data = extract()
+    botanist = get_botanist_data(
+        {'email': 'carl.linnaeus@lnhm.co.uk', 'name': 'Carl Linnaeus', 'phone': '(146)994-1635x35992'})
 
     with get_connection() as conn:
 
         conn_cursor = conn.cursor()
-        upsert_plants(conn_cursor, data)
+        map_country_code_to_id(conn_cursor)
+        get_botanist_id(conn_cursor, botanist)
 
         conn_cursor.close()
