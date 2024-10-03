@@ -6,3 +6,5 @@ pytest
 pylint
 boto3
 altair
+streamlit
+aiohttp
