@@ -20,11 +20,11 @@ def load():
         plants_to_insert, locations_to_insert, readings_to_insert = transform_plant_data(
             conn, extracted_data)
         cur = conn.cursor()
-        insert_into_locations_table(locations_to_insert)
+        insert_into_locations_table(cur, locations_to_insert)
         conn.commit()
-        insert_new_recordings(readings_to_insert)
+        insert_new_recordings(cur, readings_to_insert)
         conn.commit()
-        insert_new_plants(plants_to_insert)
+        insert_new_plants(cur, plants_to_insert)
         conn.commit()
 
         cur.close()
