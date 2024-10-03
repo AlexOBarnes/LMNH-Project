@@ -59,7 +59,7 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
       (time, soil_moisture, temperature, plant_id, botanist_id)
       insert the new recordings into the database.'''
 
-    cursor.execute_many("""
+    cursor.executemany("""
     INSERT INTO gamma.recordings
         (time, soil_moisture,temperature,plant_id,botanist_id)
     VALUES 
@@ -224,7 +224,7 @@ def update_plant_watered(cursor, plant_id_to_update, new_last_watered):
 def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
     '''Using a list of tuples containing (plant_id, location_id, plant_species_id,last_watering), inserts many new plants.'''
 
-    cursor.execute_many(
+    cursor.executemany(
         """
             INSERT INTO gamma.plants (plant_id, location_id, plant_species_id,last_watering)
             VALUES (?, ?, ?, ?)
