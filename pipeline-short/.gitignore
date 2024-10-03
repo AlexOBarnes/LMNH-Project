@@ -2,3 +2,4 @@
 *.ipynb
 test.ipynb
 *.log
+logs/
