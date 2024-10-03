@@ -3,19 +3,27 @@ into a CSV to be stored in an S3 bucket."""
 # pylint: disable=E0611
 
 from os import environ as ENV
+import logging
 from pyodbc import connect
 from dotenv import load_dotenv
 import pandas as pd
+from logging_long import logger_setup
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def connect_to_rds():
     """Connects to an RDS database using pyodbc."""
 
-    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+    conn = connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
                    f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
                    f"DATABASE={ENV['DB_NAME']};"
                    f"UID={ENV['DB_USER']};"
                    f"PWD={ENV['DB_PASSWORD']}")
+
+    LOGGER.info("Successfully connected to the RDS.")
+    return conn
 
 
 def extract_plant_data() -> pd.DataFrame:
@@ -31,26 +39,34 @@ def extract_plant_data() -> pd.DataFrame:
 
     with connect_to_rds() as conn:
         try:
+            LOGGER.info("Executing extract query.")
             df = pd.read_sql(extract_query, conn)
-        except Exception:
+            LOGGER.info("Data extraction successful.")
+        except Exception as e:
+            LOGGER.error("Error during data extraction: %s", e)
             return pd.DataFrame(columns=["recording_id", "timestamp", "soil_moisture", "temperature", "plant_id", "botanist_id"])
 
+        LOGGER.info("Executing truncate query.")
         with conn.cursor() as cur:
             cur.execute(truncate_query)
             conn.commit()
+            LOGGER.info("Recordings table truncated successfully.")
 
     return df.rename(columns={"time_taken": "timestamp"})
 
 
 if __name__ == "__main__":
 
+    logger_setup("extract_long_log.log", "logs")
     load_dotenv()
+    LOGGER.info("Loading environment variables from .env file.")
 
     plant_data = extract_plant_data()
 
     if not plant_data.empty:
+        LOGGER.info("Extracted %s records", len(plant_data))
         for i in range(len(plant_data)):
             print(plant_data.iloc[i])
 
     else:
-        print("No data extracted.")
+        LOGGER.info("No data extracted.")
