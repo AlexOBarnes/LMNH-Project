@@ -40,8 +40,8 @@ CREATE TABLE gamma.regions (
 
 CREATE TABLE gamma.origins (
     location_id INT IDENTITY(1,1),
-    longitude FLOAT(53) NOT NULL UNIQUE,
-    latitude FLOAT(53) NOT NULL UNIQUE,
+    longitude FLOAT(53) NOT NULL,
+    latitude FLOAT(53) NOT NULL,
     town_id INT NOT NULL,
     PRIMARY KEY(location_id),
     FOREIGN KEY(town_id) REFERENCES gamma.regions(town_id)
