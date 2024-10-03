@@ -29,10 +29,10 @@ def parse_arguments() -> int:
                         help='Use this flag to input data into the database')
     args = parser.parse_args()
     rows = args.rows
-    database = args.database
+    destination = args.database
 
 
-    return rows,database
+    return rows,destination
 
 def create_plant_dataframe(rows:int) -> pd.DataFrame:
     '''Returns a pandas dataframe containing fake data'''
@@ -52,7 +52,7 @@ def create_plant_dataframe(rows:int) -> pd.DataFrame:
                                        'moisture', 'temperature',
                                        'plant_id', 'botanist_id'])
 
-def upload_data(data: pd.DataFrame) -> None:
+def upload_data_csv(data: pd.DataFrame) -> None:
     '''Uploads data to S3 as a CSV'''
     aws_client = client(service_name="s3",
                         aws_access_key_id=ENV["AWS_ACCESS_KEY"],
@@ -69,7 +69,7 @@ def upload_data(data: pd.DataFrame) -> None:
 
 def upload_data_db(data: pd.DataFrame) -> None:
     '''Uploads data to the RDS database'''
-    q = '''INSERT INTO gamma.recordings 
+    q = '''INSERT INTO gamma.recordings
     (soil_moisture,temperature,plant_id,botanist_id)
     VALUES (?,?,?,?)'''
     plant_data = data.drop(columns=['recording_id','timestamp']).values.tolist()
@@ -87,4 +87,4 @@ if __name__ == '__main__':
     if database:
         upload_data_db(plant_df)
     else:
-        upload_data(plant_df)
+        upload_data_csv(plant_df)
