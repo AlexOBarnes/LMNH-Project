@@ -17,18 +17,28 @@ def get_connection():
                    f"PWD={ENV['DB_PASSWORD']}")
 
 
-def get_today_data(selected_plants, metric):
-    """Fetches today's data for the selected plants."""
-    # Create a comma-separated string of plant names for SQL query
-    plants_placeholder = ', '.join(f"'{plant}'" for plant in selected_plants)
+def get_plants_dict():
+    """Returns a dictionary of species id and name."""
+    q = '''SELECT plant_species_id, common_name FROM gamma.plant_species;'''
 
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(q)
+            result = cur.fetchall()
+            species_dict = {
+                row.common_name: row.plant_species_id for row in result}
+    
+    return species_dict
+
+
+def get_today_data(selected_plant, metric):
+    """Fetches today's data for the selected plant."""
+    # Use a direct query for a single plant ID
     query = f"""
-    SELECT time_taken AS time, {metric}
+    SELECT time_taken AS time, {metric}, plant_id
     FROM gamma.recordings
-    JOIN gamma.plants ON gamma.recordings.plant_id = gamma.plants.plant_id
-    JOIN gamma.plant_species ON gamma.plants.plant_species_id = gamma.plant_species.plant_species_id
-    WHERE gamma.plant_species.common_name IN ({plants_placeholder})
-    AND time_taken >= CAST(GETDATE() AS DATE)
+    WHERE time_taken >= CAST(GETDATE() AS DATE)
+      AND plant_id = {selected_plant}
     ORDER BY time_taken;
     """
 
@@ -38,9 +48,9 @@ def get_today_data(selected_plants, metric):
     return df
 
 
-def get_plant_names():
+def get_plant_ids():
     """Gets stored plant names."""
-    query = "SELECT common_name FROM gamma.plant_species;"
+    query = "SELECT plant_id FROM gamma.plants;"
     with get_connection() as conn:
         df = pd.read_sql(query, conn)
-    return df['common_name'].tolist()
+    return df['plant_id'].tolist()

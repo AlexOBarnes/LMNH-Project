@@ -4,7 +4,7 @@ from os import environ as ENV
 import streamlit as st
 import pandas as pd
 import altair as alt
-from sl_queries import get_today_data, get_plant_names
+from sl_queries import get_today_data, get_plant_ids
 from boto3 import client
 
 # Page configuration
@@ -47,7 +47,6 @@ def load_historical_data(selected_plants, plant_name_map):
     """Loads and combines historical data from multiple CSV files for selected plants."""
     files = list_csv_files()
     relevant_files = [file for file in files if 'recordings/' in file]
-    print(plant_name_map)
     data_frames = []
     for file in relevant_files:
         df = read_historical_data_from_s3(file)
@@ -59,68 +58,67 @@ def load_historical_data(selected_plants, plant_name_map):
 
     combined_df = pd.concat(data_frames, ignore_index=True)
 
-    # Filter for selected plants
-    plant_ids = [id for id, name in plant_name_map.items()
-                 if name in selected_plants]
-    filtered_df = combined_df[combined_df['plant_id'].isin(plant_ids)]
+    # Filter for the selected plant
+    # Get the plant ID for the selected plant
+    plant_id = plant_name_map[selected_plant]
+    filtered_df = combined_df[combined_df['plant_id']
+                              == plant_id]  # Filter for selected plant ID
 
     return filtered_df
 
 
 def plot_moisture_chart(df, plant_name_map):
     """Plots Altair chart for soil moisture."""
-    # Resample to hourly average
-    hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
-
-    # Map plant_id to names for coloring
-    hourly_avg['plant_name'] = hourly_avg['plant_id'].map(plant_name_map)
+    hourly_avg = pd.DataFrame(["timestamp", "moisture", "plant_id"])
+    if not df.empty:
+        # Resample to hourly average
+        hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
+        # Map plant_id to names for coloring
+        hourly_avg['plant_id'] = hourly_avg['plant_id'].map(plant_name_map)
 
     chart = alt.Chart(hourly_avg).mark_line().encode(
         x='timestamp:T',
         y='moisture:Q',
-        color='plant_name:N'  # Use plant names for color encoding
+        # Use plant names for color encoding
+        color=alt.Color('plant_id:N')
     ).properties(
         title="Historical Soil Moisture",
         width=600,
         height=400
-    ).configure_legend(
-        title=None
     )
     return chart
 
 
 def plot_temperature_chart(df, plant_name_map):
     """Plots Altair chart for soil temperature."""
-    # Resample to hourly average
-    hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
-
-    # Map plant_id to names for coloring
-    hourly_avg['plant_name'] = hourly_avg['plant_id'].map(plant_name_map)
+    hourly_avg = pd.DataFrame(["timestamp", "temperature", "plant_id"])
+    if not df.empty:
+        # Resample to hourly average
+        hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
+        # Map plant_id to names for coloring
+        hourly_avg['plant_id'] = hourly_avg['plant_id'].map(plant_name_map)
 
     chart = alt.Chart(hourly_avg).mark_line().encode(
         x='timestamp:T',
         y='temperature:Q',
-        color='plant_name:N'  # Use plant names for color encoding
+        color=alt.Color('plant_id:N')  # Use plant names for color encoding
     ).properties(
         title="Historical Soil Temperature",
         width=600,
         height=400
-    ).configure_legend(
-        title=None
     )
     return chart
 
 
 # Sidebar for plant selection
-plants = get_plant_names()  # Fetch plant names from the database
-selected_plants = st.sidebar.multiselect(
-    'Select plant(s):',
-    plants, default=plants[:]
+plant_ids = get_plant_ids()  # Fetch plant names from the database
+selected_plant = st.sidebar.selectbox(
+    'Select plant:',
+    plant_ids  # List of plant names
 )
 
 # Create a mapping of plant names to IDs
-plant_name_map = {id: name for id, name in enumerate(
-    plants)}
+plant_name_map = {name: id for id, name in enumerate(plant_ids)}
 
 # Layout for today's data
 col1, col2 = st.columns(2)
@@ -128,40 +126,29 @@ col1, col2 = st.columns(2)
 # Display today's Soil Moisture data
 with col1:
     st.subheader("Today's Soil Moisture")
-    if selected_plants:
-        for plant in selected_plants:
-            today_soil_moisture = get_today_data([plant], 'soil_moisture')
-            st.line_chart(
-                today_soil_moisture['soil_moisture'], use_container_width=True)
+    if selected_plant:
+        today_soil_moisture = get_today_data(selected_plant, 'soil_moisture')
+        st.line_chart(today_soil_moisture['soil_moisture'], use_container_width=True)
 
 # Display today's Temperature data
 with col2:
     st.subheader("Today's Soil Temperature")
-    if selected_plants:
-        for plant in selected_plants:
-            today_temperature = get_today_data([plant], 'temperature')
-            st.line_chart(
-                today_temperature['temperature'], use_container_width=True)
+    if selected_plant:
+        today_temperature = get_today_data(selected_plant, 'temperature')
+        st.line_chart(today_temperature['temperature'], use_container_width=True)
 
 # Load historical data for selected plants
-historical_data = load_historical_data(selected_plants, plant_name_map)
+historical_data = load_historical_data(selected_plant, plant_name_map)
 
 col1, col2 = st.columns(2)
 
 # Display historical Soil Moisture data
 with col1:
     st.subheader("Historical Soil Moisture")
-    if not historical_data.empty:
-        st.altair_chart(plot_moisture_chart(historical_data,
-                        plant_name_map), use_container_width=True)
-    else:
-        st.write("No historical data available for selected plants.")
+    st.altair_chart(plot_moisture_chart(historical_data, plant_name_map), use_container_width=True)
+
 
 # Display historical Temperature data
 with col2:
     st.subheader("Historical Soil Temperature")
-    if not historical_data.empty:
-        st.altair_chart(plot_temperature_chart(historical_data,
-                        plant_name_map), use_container_width=True)
-    else:
-        st.write("No historical data available for selected plants.")
+    st.altair_chart(plot_temperature_chart(historical_data, plant_name_map), use_container_width=True)
