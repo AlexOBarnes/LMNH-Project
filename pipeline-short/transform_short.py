@@ -71,17 +71,17 @@ def map_plant_to_most_recent_botanist(cursor):
     query = """SELECT r.plant_id, r.botanist_id
     FROM gamma.recordings r
     JOIN (
-        SELECT plant_id, MAX(time) AS max_time
+        SELECT plant_id, MAX(time_taken) AS max_time
         FROM gamma.recordings
         GROUP BY plant_id
-    ) recent ON r.plant_id = recent.plant_id AND r.time = recent.max_time
+    ) recent ON r.plant_id = recent.plant_id AND r.time_taken = recent.max_time
     """
 
     cursor.execute(query)
 
     rows = cursor.fetchall()
 
-    return {row[0].plant_id: row[1].botanist_id for row in rows}
+    return {row[0].plant_id: row[1].botanist_id for row in rows if row}
 
 
 def get_botanist_data(botanist_data: dict) -> dict | None:
@@ -144,6 +144,18 @@ def get_origin_data(origin_location: list) -> dict | None:
     }
 
 
+def map_town_name_to_id(cursor) -> dict:
+    '''Return a dictionary mapping country codes to country_id'''
+
+
+def map_country_code_to_id(cursor) -> dict:
+    '''Return a dictionary mapping country codes to country_id'''
+    cursor.execute("SELECT country_code, country_id FROM gamma.countries")
+    rows = cursor.fetchall()
+    print(rows)
+    return {row[0]: row[1] for row in rows if row}
+
+
 def get_botanist_id(cursor, botanist_data: dict) -> int | None:
     '''Given information about a botanist, retrieve the botanist id from the dataframe. 
     If the botanist is not currently in the database, return None'''
@@ -177,6 +189,7 @@ if __name__ == "__main__":
     with get_connection() as conn:
 
         conn_cursor = conn.cursor()
+        map_country_code_to_id(conn_cursor)
         get_botanist_id(conn_cursor, botanist)
 
         conn_cursor.close()
