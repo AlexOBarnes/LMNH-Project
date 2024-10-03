@@ -69,12 +69,19 @@ def load_historical_data(selected_plants, plant_name_map):
 
 def plot_moisture_chart(df, plant_name_map):
     """Plots Altair chart for soil moisture."""
-    hourly_avg = pd.DataFrame(["timestamp", "moisture", "plant_id"])
     if not df.empty:
+        # Ensure only numeric columns are aggregated
+        df = df[['timestamp', 'moisture', 'plant_id']]
+
         # Resample to hourly average
         hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
+
         # Map plant_id to names for coloring
         hourly_avg['plant_id'] = hourly_avg['plant_id'].map(plant_name_map)
+    else:
+        # Initialize an empty DataFrame if df is empty
+        hourly_avg = pd.DataFrame(
+            columns=['timestamp', 'moisture', 'plant_id'])
 
     chart = alt.Chart(hourly_avg).mark_line().encode(
         x='time:T',
@@ -89,18 +96,65 @@ def plot_moisture_chart(df, plant_name_map):
 
 def plot_temperature_chart(df, plant_name_map):
     """Plots Altair chart for soil temperature."""
-    hourly_avg = pd.DataFrame(["timestamp", "temperature", "plant_id"])
     if not df.empty:
+        # Ensure only numeric columns are aggregated
+        df = df[['timestamp', 'temperature', 'plant_id']]
+
         # Resample to hourly average
         hourly_avg = df.resample('H', on='timestamp').mean().reset_index()
+
         # Map plant_id to names for coloring
         hourly_avg['plant_id'] = hourly_avg['plant_id'].map(plant_name_map)
+    else:
+        # Initialize an empty DataFrame if df is empty
+        hourly_avg = pd.DataFrame(
+            columns=['timestamp', 'temperature', 'plant_id'])
 
     chart = alt.Chart(hourly_avg).mark_line(color="#e3298c").encode(
         x='time:T',
         y='temperature:Q',
     ).properties(
         title="Historical Soil Temperature",
+        width=600,
+        height=400
+    )
+    return chart
+
+
+def plot_today_moisture_chart(df):
+    """Plots Altair chart for today's soil moisture."""
+    if not df.empty:
+        # Ensure timestamp is in datetime format
+        df['time'] = pd.to_datetime(df['time'])
+    else:
+        # Initialize an empty DataFrame if no data is available
+        df = pd.DataFrame(columns=['time', 'moisture'])
+
+    chart = alt.Chart(df).mark_line().encode(
+        x='time:T',
+        y='moisture:Q'
+    ).properties(
+        title="Today's Soil Moisture",
+        width=600,
+        height=400
+    )
+    return chart
+
+
+def plot_today_temperature_chart(df):
+    """Plots Altair chart for today's soil temperature."""
+    if not df.empty:
+        # Ensure timestamp is in datetime format
+        df['time'] = pd.to_datetime(df['time'])
+    else:
+        # Initialize an empty DataFrame if no data is available
+        df = pd.DataFrame(columns=['time', 'temperature'])
+
+    chart = alt.Chart(df).mark_line(color='#e3298c').encode(
+        x='time:T',
+        y='temperature:Q'
+    ).properties(
+        title="Today's Soil Temperature",
         width=600,
         height=400
     )
@@ -131,7 +185,7 @@ species_data.columns = [
 
 # Display the species data as a table
 st.subheader("Plant Species Information")
-st.table(species_data)
+st.dataframe(species_data, hide_index=True)
 
 # Layout for today's data
 st.subheader("Today's Data")
@@ -141,47 +195,15 @@ col1, col2 = st.columns(2)
 with col1:
     if selected_plant:
         today_soil_moisture = get_today_data(selected_plant, 'soil_moisture')
-
-        # Prepare the data for Altair
-        today_soil_moisture['time'] = pd.to_datetime(
-            # Ensure timestamp is in datetime format
-            today_soil_moisture['time'])
-
-        # Create an Altair chart for today's soil moisture
-        chart = alt.Chart(today_soil_moisture).mark_line().encode(  # Set the line color (change 'blue' as needed)
-            x='time:T',
-            y='moisture:Q'
-        ).properties(
-            title="Today's Soil Moisture",
-            width=600,
-            height=400
-        )
-
-        # Display the Altair chart in Streamlit
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(plot_today_moisture_chart(
+            today_soil_moisture), use_container_width=True)
 
 # Display today's Temperature data
 with col2:
     if selected_plant:
         today_temperature = get_today_data(selected_plant, 'temperature')
-
-        # Prepare the data for Altair
-        today_temperature['time'] = pd.to_datetime(
-            # Ensure timestamp is in datetime format
-            today_temperature['time'])
-
-        # Create an Altair chart for today's temperature
-        chart = alt.Chart(today_temperature).mark_line(color='#e3298c').encode(
-            x='time:T',
-            y='temperature:Q'
-        ).properties(
-            title="Today's Soil Temperature",
-            width=600,
-            height=400
-        )
-
-        # Display the Altair chart in Streamlit
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(plot_today_temperature_chart(
+            today_temperature), use_container_width=True)
 
 # Load historical data for selected plants
 historical_data = load_historical_data(selected_plant, plant_name_map)

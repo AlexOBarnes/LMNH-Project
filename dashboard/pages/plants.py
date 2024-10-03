@@ -32,7 +32,7 @@ def fetch_plant_data():
 
 def run():
     st.set_page_config(layout="wide")
-    st.markdown("<h1 style='color: #e3298c;'>Available Plants</h1>",
+    st.markdown("<h1 style='color: #e3298c;'>🌱 Available Plants 🌱</h1>",
                 unsafe_allow_html=True)
 
     # Fetch plant data
@@ -46,8 +46,8 @@ def run():
     }, inplace=True)
 
     # Display the plant data as a table without the index
-    st.table(plant_data.reset_index(drop=True))
-
+    st.table(plant_data)
+    st.markdown("<style>th.row_heading, th.blank {display:None}</style>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     run()

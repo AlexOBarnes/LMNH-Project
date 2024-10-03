@@ -4,11 +4,11 @@ import streamlit as st
 
 if __name__ == "__main__":
     st.set_page_config(layout="wide")
-    st.markdown("<h1 style='color: #e3298c;'>About Us</h1>",
+    st.markdown("<h1 style='color: #e3298c;'>🌱 About Us 🌱</h1>",
                 unsafe_allow_html=True)
     
     st.write("""
-    **Liverpool Natural History Museum (LNHM)** is at the forefront of botanical science, dedicated to conserving and showcasing the incredible 
+    **Liverpool Museum of Natural History (LMNH)** is at the forefront of botanical science, dedicated to conserving and showcasing the incredible 
     diversity of plant life. With the opening of our new botanical wing, we are excited to share the wonders of the plant world with visitors and researchers alike.
     
     Our conservatory houses a wide variety of plants from around the world, each of which contributes to a dynamic ecosystem that we work hard to maintain.
@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     st.subheader("Our Plant Monitoring Initiative")
     st.write("""
-        The LNHM plant health monitoring project is designed to give our team of botanists and gardeners detailed insights into the health and well-being of 
+        The LMNH plant health monitoring project is designed to give our team of botanists and gardeners detailed insights into the health and well-being of 
         each plant in our conservatory. With sensors placed throughout the space, we track essential environmental factors such as soil moisture, temperature, 
         humidity, and more.
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     st.write("""
         If you'd like to learn more about our plant monitoring initiative or collaborate with us on future projects, don't hesitate to reach out!
 
-        - **Website**: [www.lnhm.co.uk](https://www.lnhm.co.uk)
+        - **Website**: [www.lmnh.co.uk](https://www.lmnh.co.uk)
         - **Phone**: 0151 555 5555
         - **Address**: Liverpool Natural History Museum, 123 Plant Conservatory Lane, Liverpool, UK
         """)
