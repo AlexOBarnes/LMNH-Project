@@ -54,6 +54,7 @@ def upsert_plants(curr, plant_data: list[dict]) -> None:
 
     if plants_to_insert:
         insert_new_plants(curr, plants_to_insert)
+        curr.commit()
     if recordings_to_insert:
         insert_new_recordings(curr, recordings_to_insert)
 
