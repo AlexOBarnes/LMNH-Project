@@ -14,10 +14,6 @@ from send_email import send_email
 def lambda_handler(event, context):
     """AWS Lambda handler function for running the ETL pipeline."""
 
-    db_host = ENV["DB_HOST"]
-    db_user = ENV["DB_USER"]
-    db_password = ENV["DB_PASSWORD"]
-    db_name = ENV["DB_NAME"]
     bucket_name = ENV["S3_BUCKET_NAME"]
     bucket_folder_name = ENV["S3_FOLDER_PATH"]
 
@@ -25,11 +21,11 @@ def lambda_handler(event, context):
 
     send_email(is_start=True, date=current_date)
 
-    conn = connect_to_rds(db_host, db_user, db_password, db_name)
+    conn = connect_to_rds()
     if conn is None:
         return {"status_code": 500, "message": "Failed to connect to RDS"}
 
-    plant_data = extract_plant_data(conn)
+    plant_data = extract_plant_data()
     if not plant_data:
         return {"status_code": 204, "message": "No new data to process."}
 
