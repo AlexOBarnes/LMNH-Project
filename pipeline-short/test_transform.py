@@ -4,6 +4,24 @@ from unittest.mock import patch
 from transform_short import split_name, validate_latitude, validate_longitude, get_botanist_id
 
 
+@patch("transform_short.split_name", return_value=("John", "Doe"))
+def test_get_botanist_id_found(mock_split_name):
+
+    botanist_data = {
+        "email": "test@bot.com",
+        "phone": "1234567890",
+        "name": "John Doe"
+    }
+
+    all_botanists = {
+        ("test@bot.com", "John", "Doe"): 42
+    }
+
+    botanist_id = get_botanist_id(botanist_data, all_botanists)
+
+    assert botanist_id == 42
+
+
 def test_validate_longitude():
     assert validate_longitude("0") == True
     assert validate_longitude("-180") == True
