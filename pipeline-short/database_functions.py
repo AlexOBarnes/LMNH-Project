@@ -1,5 +1,4 @@
 import logging
-import pyodbc
 
 LOGGER = logging.getLogger(__name__)
 
