@@ -247,9 +247,12 @@ resource "aws_lambda_function" "long_pipeline" {
       DB_NAME     = var.DB_NAME
       DB_USER     = var.DB_USER
       DB_PASSWORD = var.DB_PW
-      DB_BUCKET   = var.BUCKET
+      DB_SCHEMA = var.DB_SCHEMA
+      S3_BUCKET_NAME   = var.BUCKET
+      S3_FOLDER_PATH = var.FOLDER
       MY_AWS_ACCESS_KEY = var.AWS_ACCESS_KEY
       MY_AWS_SECRET_KEY = var.AWS_SECRET_KEY
+      AWS_REGION = var.AWS_REGION
       TO_EMAIL=var.TO
       FROM_EMAIL=var.FROM
     }

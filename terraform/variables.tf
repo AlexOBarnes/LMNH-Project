@@ -62,3 +62,9 @@ variable "TO" {
 variable "FROM" {
     type = string
 }
+variable "FOLDER" {
+    type = string
+}
+variable "DB_SCHEMA" {
+    type = string
+}

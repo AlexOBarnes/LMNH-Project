@@ -46,8 +46,8 @@ class TestPlantConditions(unittest.TestCase):
 
         plants = [1, 2, 3]
         with patch.dict('os.environ', {
-            'AWS_ACCESS_KEY': 'test_access_key',
-            'AWS_SECRET_ACCESS_KEY': 'test_secret_key',
+            'MY_AWS_ACCESS_KEY': 'test_access_key',
+            'MY_AWS_SECRET_KEY': 'test_secret_key',
             'FROM': 'test_from@example.com',
             'TO': 'test_to@example.com'
         }):
