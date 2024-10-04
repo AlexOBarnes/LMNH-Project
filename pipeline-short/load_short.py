@@ -1,8 +1,6 @@
 '''Script for loading'''
 import logging
 
-from datetime import datetime as dt
-
 from dotenv import load_dotenv
 
 from logger import logger_setup
