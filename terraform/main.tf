@@ -250,6 +250,8 @@ resource "aws_lambda_function" "long_pipeline" {
       DB_BUCKET   = var.BUCKET
       MY_AWS_ACCESS_KEY = var.AWS_ACCESS_KEY
       MY_AWS_SECRET_KEY = var.AWS_SECRET_KEY
+      TO_EMAIL=var.TO
+      FROM_EMAIL=var.FROM
     }
   }
 }
@@ -270,6 +272,8 @@ resource "aws_lambda_function" "plant_checker" {
       DB_BUCKET   = var.BUCKET
       MY_AWS_ACCESS_KEY = var.AWS_ACCESS_KEY
       MY_AWS_SECRET_KEY = var.AWS_SECRET_KEY
+      TO=var.TO
+      FROM=var.FROM
     }
   }
 }
