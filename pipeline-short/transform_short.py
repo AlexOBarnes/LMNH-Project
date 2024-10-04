@@ -3,7 +3,7 @@ import logging
 from datetime import datetime as dt
 from os import environ as ENV
 
-from pymssql import connect
+import pymssql
 
 from dotenv import load_dotenv
 
@@ -20,7 +20,7 @@ def get_connection():
     try:
         load_dotenv()
 
-        conn = connect(
+        conn = pymssql.connect(
             server=ENV["DB_HOST"],
             port=ENV["DB_PORT"],
             user=ENV["DB_USER"],

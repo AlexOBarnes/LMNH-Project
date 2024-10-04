@@ -3,8 +3,6 @@ import logging
 
 from dotenv import load_dotenv
 
-from logger import logger_setup
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -67,5 +65,3 @@ def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
 
 if __name__ == "__main__":
     load_dotenv()
-    logger_setup("log_transform.log", "logs")
-    load()
