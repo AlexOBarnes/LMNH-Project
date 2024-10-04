@@ -1,6 +1,8 @@
-# Short-Term Data Storage Pipeline
+# LMNH Data Pipeline (short-term storage)
 
 ## Setup: Running locally
+
+Ensure that an SQL server RDS has been setup prior and is accessible. 
 
 1. `python3 -m venv venv` to create a virtual environment.
 
@@ -18,10 +20,16 @@ DB_USER=XXXXX
 DB_PASSWORD=XXXXX
 ```
 
-### Building a docker image 
+5. To run the pipeline locally, use `python3 pipeline_short.py`
 
+## Setup: Dockerizing and Running on AWS 
 
-### Docker
+1.`brew install awscli`
+2. `aws configure`
+3. `aws ecr get-login-password --region {REGION}| docker login --username AWS --password-stdin {ECR_URI}`
+4. `docker build -t {image-name} . --platform "linux/amd64"`
+5. `docker tag {IMAGE_NAME}:latest {ECR_URI}:latest`
+6. `docker push {ECR_URI}:latest`
 
 
 ## Files

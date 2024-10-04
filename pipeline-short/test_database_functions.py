@@ -1,3 +1,4 @@
+# pylint: skip-file
 from unittest.mock import MagicMock
 from database_functions import (get_all_plant_ids, map_plant_id_to_most_recent_botanist,
                                 map_botanist_details_to_id, map_town_name_to_id,
