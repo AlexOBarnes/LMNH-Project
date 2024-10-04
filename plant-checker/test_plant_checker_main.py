@@ -29,7 +29,7 @@ class TestPlantConditions(unittest.TestCase):
             'DB_PORT': '1433',
             'DB_NAME': 'test_db',
             'DB_USER': 'test_user',
-            'DB_PW': 'test_pw'
+            'DB_PASSWORD': 'test_password'
         }):
             connection = get_connection()
 

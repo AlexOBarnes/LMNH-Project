@@ -44,7 +44,7 @@ class TestPipeline:
         mock_extract_plant_data.return_value.empty = True
 
         response = lambda_handler({}, {})
-        assert response["status_code"] == 204
+        assert response["status_code"] == 404
         assert response["message"] == "No new data to process."
 
         mock_send_email.assert_called_once()
