@@ -18,6 +18,10 @@ DB_USER=XXXXX
 DB_PASSWORD=XXXXX
 ```
 
+### Building a docker image 
+
+
+
 
 ## Files
 
