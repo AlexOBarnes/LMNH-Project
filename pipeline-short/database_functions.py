@@ -6,8 +6,7 @@ LOGGER = logging.getLogger(__name__)
 def get_all_plant_ids(cursor):
     '''Returns a mapping of all plants to the most recent botanist'''
 
-    query = """SELECT plant_id from gamma.plants
-    """
+    query = "SELECT plant_id from gamma.plants"
 
     cursor.execute(query)
     rows = cursor.fetchall()

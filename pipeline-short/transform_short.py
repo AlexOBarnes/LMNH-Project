@@ -76,7 +76,7 @@ def validate_origin_data(origin_data: list) -> bool:
 
 
 def get_botanist_id(botanist_data: dict, all_botanists: dict) -> int:
-    '''Formats the extracted json into botanist data.'''
+    """Returns the botanist ID based on provided botanist data."""
 
     email = botanist_data["email"]
     phone = botanist_data["phone"]
