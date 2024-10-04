@@ -23,7 +23,7 @@ def lambda_handler(event, context):
 
     plant_data = extract_plant_data()
     if plant_data.empty:
-        return {"status_code": 204, "message": "No new data to process."}
+        return {"status_code": 404, "message": "No new data to process."}
 
     csv_buffer = transform_data_to_csv(plant_data)
 
