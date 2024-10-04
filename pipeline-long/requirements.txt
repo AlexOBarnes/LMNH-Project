@@ -1,5 +1,5 @@
 python-dotenv
-pyodbc
+pymssql
 pytest
 pylint
 boto3
