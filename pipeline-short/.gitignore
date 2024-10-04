@@ -1,5 +1,4 @@
 .env
-*.ipynb
-test.ipynb
 *.log
 logs/*.log
+venv/
