@@ -56,3 +56,15 @@ variable "CHECKER_URI" {
 variable "VPC_ID" {
     type = string
 }
+variable "TO" {
+    type = string
+}
+variable "FROM" {
+    type = string
+}
+variable "FOLDER" {
+    type = string
+}
+variable "DB_SCHEMA" {
+    type = string
+}

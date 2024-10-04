@@ -4,20 +4,21 @@ from os import environ as ENV
 import logging
 from datetime import datetime as dt
 from dotenv import load_dotenv
-from pyodbc import connect,Connection
+from pymssql import connect
 from boto3 import client
 
 def get_date() -> str:
     '''Returns current time'''
     return dt.now().strftime('%A %d %B %Y @ %H:%M:%S ')
 
-def get_connection() -> Connection:
+def get_connection():
     '''Returns a pyodbc connections'''
-    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                   f"SERVER={ENV['HOST']},{ENV['DB_PORT']};"
-                   f"DATABASE={ENV['DB_NAME']};"
-                   f"UID={ENV['DB_USER']};"
-                   f"PWD={ENV['DB_PW']}")
+    return connect(server=ENV["DB_HOST"],
+                   port=ENV["DB_PORT"],
+                   user=ENV["DB_USER"],
+                   password=ENV["DB_PASSWORD"],
+                   database=ENV["DB_NAME"],
+                   as_dict=True)
 
 def get_affected_plants() -> list[int]:
     '''Returns a list of plants that require attention'''
@@ -39,15 +40,15 @@ def get_affected_plants() -> list[int]:
         with conn.cursor() as cur:
             cur.execute(q)
             logging.info('Query executed.')
-            plants = [plant[0] for plant in cur.fetchall()]
+            plants = [plant['plant_id'] for plant in cur.fetchall()]
             logging.info('Plants identified:%s',plants)
     return plants
 
 
 def send_emergency_email(plants: list[int]) -> None:
     '''Sends an email using SES to a specified email address'''
-    ses = client("ses", aws_access_key_id=ENV["AWS_ACCESS_KEY"],
-                 aws_secret_access_key=ENV["AWS_SECRET_ACCESS_KEY"],
+    ses = client("ses", aws_access_key_id=ENV["MY_AWS_ACCESS_KEY"],
+                 aws_secret_access_key=ENV["MY_AWS_SECRET_KEY"],
                  region_name="eu-west-2")
     logging.info('SES client connection established.')
 
@@ -78,7 +79,10 @@ def handler(event, context) -> None:
     load_dotenv()
     logging.info('Environment loaded.')
     plant_ids = get_affected_plants()
-    send_emergency_email(plant_ids)
+    if plant_ids:
+        send_emergency_email(plant_ids)
+    else:
+        logging.info('No plants identified')
 
 if __name__ == '__main__':
     handler({},{})
