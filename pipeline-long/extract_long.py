@@ -31,8 +31,8 @@ def extract_plant_data() -> pd.DataFrame:
     recordings table."""
 
     extract_query = (
-        "SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id "
-        "FROM gamma.recordings;"
+        """SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id 
+        FROM gamma.recordings;"""
     ).strip()
 
     truncate_query = "TRUNCATE TABLE gamma.recordings;"

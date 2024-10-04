@@ -22,6 +22,7 @@ def lambda_handler(event, context):
     send_email(is_start=True, date=current_date)
 
     plant_data = extract_plant_data()
+    print(plant_data)
     if plant_data.empty:
         return {"status_code": 404, "message": "No new data to process."}
 
