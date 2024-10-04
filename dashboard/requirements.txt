@@ -1,8 +1,8 @@
 streamlit
-pandas
 python-dotenv
 boto3
-pymssql
 altair
 pytest
 pylint
+pymssql
+pandas

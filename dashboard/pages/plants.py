@@ -1,10 +1,11 @@
 # pylint: disable=E0611
+# pylint: disable=E0401
 """Dashboard page for a table of all plants in the database."""
 
 from os import environ as ENV
 import streamlit as st
 import pandas as pd
-from pyodbc import connect
+from pymssql import connect
 from dotenv import load_dotenv
 import requests
 
@@ -17,11 +18,12 @@ US_ACCESS_KEY = ENV['US_ACCESS_KEY']
 
 def get_connection():
     '''Returns a connection to the RDS database'''
-    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                   f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
-                   f"DATABASE={ENV['DB_NAME']};"
-                   f"UID={ENV['DB_USER']};"
-                   f"PWD={ENV['DB_PASSWORD']}")
+    return connect(server=ENV["DB_HOST"],
+                   port=ENV["DB_PORT"],
+                   user=ENV["DB_USER"],
+                   password=ENV["DB_PASSWORD"],
+                   database=ENV["DB_NAME"],
+                   as_dict=True)
 
 
 def fetch_plant_data():
@@ -32,13 +34,18 @@ def fetch_plant_data():
     JOIN gamma.plant_species ps ON p.plant_species_id = ps.plant_species_id;
     """
     with get_connection() as conn:
-        return pd.read_sql(query, conn)
+        cursor = conn.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
+
+    return pd.DataFrame(result)
 
 
 def fetch_plant_image(common_name):
     '''Fetches an image URL from Unsplash based on the common name of the plant'''
     url = f"https://api.unsplash.com/search/photos?query={common_name}&client_id={US_ACCESS_KEY}"
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     if response.status_code == 200:
         data = response.json()
         if data['results']:
