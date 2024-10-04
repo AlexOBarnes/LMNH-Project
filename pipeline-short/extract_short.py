@@ -1,6 +1,8 @@
 '''Extraction of the data'''
 import logging
+
 from time import perf_counter
+
 import requests
 import asyncio
 import aiohttp

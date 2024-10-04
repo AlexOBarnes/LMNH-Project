@@ -1,24 +1,19 @@
 '''Short term pipeline'''
-
+from transform_short import get_connection, transform_plant_data
 from extract_short import extract
-from transform_short import get_connection
-from load_short import upsert_plants
+from load_short import load
 
 
-def lambda_handler(event, context):
+def lambda_handler(event=None, context=None):
     '''Lambda handler'''
     try:
-        data = extract()
+        with get_connection() as conn:
+            extracted_data = extract()
+            plants, locations, readings = transform_plant_data(
+                conn, extracted_data)
+            load(conn, plants, locations, readings)
     except Exception as err:
         return {"statusCode": 400, 'body': f"Failure. Could not extract data, {err}"}
-    with get_connection() as conn:
-        try:
-            conn_cursor = conn.cursor()
-            upsert_plants(conn_cursor, data)
-            conn_cursor.commit()
-            conn_cursor.close()
-        except Exception as err:
-            return {"statusCode": 400, 'body': f"Failure: {err}"}
     return {'statusCode': 200, "body": "Success."}
 
 
