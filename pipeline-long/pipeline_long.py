@@ -22,10 +22,12 @@ def lambda_handler(event, context):
     send_email(is_start=True, date=current_date)
 
     plant_data = extract_plant_data()
+    print(plant_data)
     if plant_data.empty:
         return {"status_code": 404, "message": "No new data to process."}
 
     csv_buffer = transform_data_to_csv(plant_data)
+
 
     try:
         upload_csv_to_s3(csv_buffer, bucket_name, bucket_folder_name)

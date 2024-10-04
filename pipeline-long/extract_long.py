@@ -31,8 +31,7 @@ def extract_plant_data() -> pd.DataFrame:
     recordings table."""
 
     extract_query = (
-        "SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id "
-        "FROM gamma.recordings;"
+        "SELECT * FROM gamma.recordings; "
     ).strip()
 
     truncate_query = "TRUNCATE TABLE gamma.recordings;"
@@ -45,8 +44,8 @@ def extract_plant_data() -> pd.DataFrame:
                 result = cur.fetchall()
                 LOGGER.info("Data extraction successful.")
 
-            columns = [desc[0] for desc in cur.description]
-            df = pd.DataFrame(result, columns=columns)
+
+            df = pd.DataFrame(result, columns=['recording_id','timestamp','soil_moisture','temperature','plant_id','botanist_id'])
 
         except Exception as e:
             LOGGER.error("Error during data extraction: %s", e)
