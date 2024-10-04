@@ -26,6 +26,7 @@ BUCKET_NAME = 'c13-wshao-lmnh-long-term-storage'
 # Helper functions
 
 
+@st.cache_data
 def list_csv_files():
     """List all CSV files in the S3 bucket."""
     response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix="recordings/")
@@ -34,12 +35,14 @@ def list_csv_files():
     return files
 
 
+@st.cache_data
 def read_historical_data_from_s3(file_key):
     """Reads historical data from S3."""
     obj = s3.get_object(Bucket=BUCKET_NAME, Key=file_key)
     return pd.read_csv(obj['Body'])
 
 
+@st.cache_data
 def load_historical_data(selected_plant, plant_name_map):
     """Loads and combines historical data from multiple CSV files for selected plants."""
     files = list_csv_files()
@@ -160,8 +163,12 @@ with col1:
 with col2:
     # Fetch and display plant species data
     species_data = fetch_plant_species_data(selected_plant)
-    species_data.columns = ["Plant ID", "Species ID",
-                            "Common Name", "Scientific Name", "Last Watered"]
+    # Check if the DataFrame has data
+    if not species_data.empty and species_data.shape[1] == 5:
+        species_data.columns = ["Plant ID", "Species ID", "Scientific Name", "Common Name", "Region"]
+    else:
+        st.error("The species_data DataFrame is either empty or does not have 5 columns.")
+
     st.subheader("Plant Species Information")
     st.dataframe(species_data, hide_index=True)
 
