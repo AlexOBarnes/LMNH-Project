@@ -39,7 +39,7 @@ def insert_new_recordings(cursor, recordings: list[tuple]):
      INSERT INTO gamma.recordings
         (time_taken, soil_moisture,temperature,plant_id,botanist_id,last_watering)
      VALUES
-        (?,?,?,?,?,?)
+        (%s,%s,%s,%s,%s,%s)
      """, recordings)
 
 
@@ -49,7 +49,7 @@ def insert_into_locations_table(cursor, locations: list[tuple]) -> int:
     query_insert = """
     INSERT INTO gamma.origins (longitude, latitude, town_id)
     OUTPUT inserted.location_id
-    VALUES (?, ?, ?);
+    VALUES (%s, %s, %s);
     """
 
     cursor.executemany(query_insert, locations)
@@ -61,7 +61,7 @@ def insert_new_plants(cursor, plant_data_to_insert: list[tuple]):
     cursor.executemany(
         """
             INSERT INTO gamma.plants (plant_id, location_id, plant_species_id)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s)
         """,
         plant_data_to_insert
     )
