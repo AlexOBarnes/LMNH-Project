@@ -5,11 +5,7 @@ from datetime import datetime as dt
 
 from dotenv import load_dotenv
 
-from transform_short import transform_plant_data, get_connection
-
 from logger import logger_setup
-
-from extract_short import extract
 
 LOGGER = logging.getLogger(__name__)
 

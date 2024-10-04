@@ -3,12 +3,12 @@ import logging
 from datetime import datetime as dt
 from os import environ as ENV
 
-
-import pyodbc
+from pymssql import connect
 
 from dotenv import load_dotenv
 
 from logger import logger_setup
+
 from database_functions import map_botanist_details_to_id, map_longitude_and_latitude_to_location_id, map_species_names_to_species_id, map_town_name_to_id, get_all_plant_ids, get_max_location_id
 
 LOGGER = logging.getLogger(__name__)
@@ -18,17 +18,18 @@ def get_connection():
     """Connects to an RDS database using pyodbc."""
 
     try:
-        connection_string = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={ENV["DB_HOST"]};"
-            f"DATABASE={ENV["DB_NAME"]};"
-            f"UID={ENV["DB_USER"]};"
-            f"PWD={ENV["DB_PASSWORD"]}"
+        load_dotenv()
+
+        conn = connect(
+            server=ENV["DB_HOST"],
+            port=ENV["DB_PORT"],
+            user=ENV["DB_USER"],
+            password=ENV["DB_PASSWORD"],
+            database=ENV["DB_NAME"]
         )
 
-        connection = pyodbc.connect(connection_string)
         LOGGER.info("Connection established to RDS")
-        return connection
+        return conn
 
     except Exception as err:
         LOGGER.error(f"Error connecting to RDS %s: ", err)
