@@ -7,7 +7,6 @@ from transform_short import split_name, validate_latitude, validate_longitude, g
 @patch("transform_short.is_valid_email", return_value=True)
 @patch("transform_short.validate_origin_data", return_value=True)
 def test_validate_plant_valid_new_plant_with_origin(mock_is_valid_email, mock_validate_origin_data):
-    # Mock plant data for a new plant with valid origin data
     plant = {
         "botanist": {
             "name": "Jane Doe",
