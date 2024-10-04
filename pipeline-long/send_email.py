@@ -8,9 +8,9 @@ from boto3 import client
 def send_email(is_start: bool, date: str) -> None:
     """Sends an email using SES to a specified email address."""
 
-    ses = client("ses", aws_access_key_id=ENV["AWS_ACCESS_KEY"],
-                 aws_secret_access_key=ENV["AWS_SECRET_ACCESS_KEY"],
-                 region_name=ENV.get("AWS_REGION", "eu-west-2"))
+    ses = client("ses", aws_access_key_id=ENV["MY_AWS_ACCESS_KEY"],
+                 aws_secret_access_key=ENV["MY_AWS_SECRET_KEY"],
+                 region_name=ENV.get("MY_AWS_REGION", "eu-west-2"))
     if is_start:
         text = "The pipeline has started. Processing of historic data has begun."
         subject = f"Pipeline Run - {date}."

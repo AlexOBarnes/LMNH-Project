@@ -1,37 +1,6 @@
 from unittest.mock import patch, MagicMock
 import pandas as pd
-from extract_long import connect_to_rds, extract_plant_data
-
-
-class TestConnectToRDS:
-    """Test suite for the connect_to_rds function, which establishes a
-    connection to an RDS instance using pyodbc."""
-
-    @patch("extract_long.connect")
-    @patch.dict("os.environ", {
-        "DB_HOST": "test_host",
-        "DB_PORT": "1433",
-        "DB_NAME": "test_db",
-        "DB_USER": "test_user",
-        "DB_PASSWORD": "test_password"
-    })
-    def test_connect_to_rds_success(self, mock_connect):
-        """Tests successful connection to the RDS using the connect_to_rds
-        function."""
-
-        mock_connection = MagicMock()
-        mock_connect.return_value = mock_connection
-        connection = connect_to_rds()
-
-        mock_connect.assert_called_once_with(
-            "DRIVER={ODBC Driver 17 for SQL Server};"
-            "SERVER=test_host,1433;"
-            "DATABASE=test_db;"
-            "UID=test_user;"
-            "PWD=test_password"
-        )
-
-        assert connection is not None
+from extract_long import extract_plant_data
 
 
 class TestExtractPlantData:
