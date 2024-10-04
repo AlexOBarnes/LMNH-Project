@@ -1,10 +1,9 @@
 """A file for extracting data older than 24 hours from the RDS
 into a CSV to be stored in an S3 bucket."""
-# pylint: disable=E0611
 
 from os import environ as ENV
 import logging
-from pyodbc import connect
+from pymssql import connect
 from dotenv import load_dotenv
 import pandas as pd
 from logging_long import logger_setup
@@ -16,11 +15,12 @@ LOGGER = logging.getLogger(__name__)
 def connect_to_rds():
     """Connects to an RDS database using pyodbc."""
 
-    conn = connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                   f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
-                   f"DATABASE={ENV['DB_NAME']};"
-                   f"UID={ENV['DB_USER']};"
-                   f"PWD={ENV['DB_PASSWORD']}")
+    conn = connect(server=ENV["DB_HOST"],
+                   port=ENV["DB_PORT"],
+                   user=ENV["DB_USER"],
+                   password=ENV["DB_PASSWORD"],
+                   database=ENV["DB_NAME"],
+                   as_dict=True)
 
     LOGGER.info("Successfully connected to the RDS.")
     return conn
