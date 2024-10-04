@@ -220,6 +220,7 @@ resource "aws_lambda_function" "short_pipeline" {
   package_type  = "Image"
   image_uri     = var.SHORT_IMAGE_URI
   role          = aws_iam_role.lambda_role.arn
+  timeout       = 900
 
   environment {
     variables = {
@@ -239,6 +240,7 @@ resource "aws_lambda_function" "long_pipeline" {
   package_type  = "Image"
   image_uri     = var.LONG_IMAGE_URI
   role          = aws_iam_role.lambda_role.arn
+  timeout       = 900
 
   environment {
     variables = {
