@@ -11,4 +11,4 @@ COPY extract_long.py .
 COPY transform_long.py .
 COPY load_long.py .
 
-CMD [ "pipeline.lambda_handler" ]
+CMD [ "pipeline_long.lambda_handler" ]
