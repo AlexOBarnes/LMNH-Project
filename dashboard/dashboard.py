@@ -107,11 +107,11 @@ def plot_today_moisture_chart(df):
     if not df.empty:
         df['time'] = pd.to_datetime(df['time'])
     else:
-        df = pd.DataFrame(columns=['time', 'moisture'])
+        df = pd.DataFrame(columns=['time', 'soil_moisture'])
 
     chart = alt.Chart(df).mark_line().encode(
-        x='time:T',
-        y='moisture:Q'
+        x=alt.X('time:T', title='Time'),
+        y=alt.Y('soil_moisture:Q', title='Soil Moisture')
     ).properties(
         title="Today's Soil Moisture",
         width=600,
@@ -128,8 +128,8 @@ def plot_today_temperature_chart(df):
         df = pd.DataFrame(columns=['time', 'temperature'])
 
     chart = alt.Chart(df).mark_line(color='#e3298c').encode(
-        x='time:T',
-        y='temperature:Q'
+        x=alt.X('time:T', title='Time'),
+        y=alt.Y('temperature:Q', title='Soil Temperature')
     ).properties(
         title="Today's Soil Temperature",
         width=600,

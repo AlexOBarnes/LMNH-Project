@@ -3,7 +3,7 @@
 
 from os import environ as ENV
 import pandas as pd
-from pyodbc import connect
+from pymssql import connect
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,25 +11,12 @@ load_dotenv()
 
 def get_connection():
     '''Returns a connection to the RDS database'''
-    return connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-                   f"SERVER={ENV['DB_HOST']},{ENV['DB_PORT']};"
-                   f"DATABASE={ENV['DB_NAME']};"
-                   f"UID={ENV['DB_USER']};"
-                   f"PWD={ENV['DB_PASSWORD']}")
-
-
-def get_plants_dict():
-    """Returns a dictionary of species id and name."""
-    q = '''SELECT plant_species_id, common_name FROM gamma.plant_species;'''
-
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(q)
-            result = cur.fetchall()
-            species_dict = {
-                row.common_name: row.plant_species_id for row in result}
-
-    return species_dict
+    return connect(server=ENV["DB_HOST"],
+                   port=ENV["DB_PORT"],
+                   user=ENV["DB_USER"],
+                   password=ENV["DB_PASSWORD"],
+                   database=ENV["DB_NAME"],
+                   as_dict=True)
 
 
 def get_today_data(selected_plant, metric):
@@ -64,7 +51,7 @@ def fetch_plant_species_data(selected_plant_id):
     FROM gamma.plants AS p
     JOIN gamma.plant_species AS sp ON sp.plant_species_id = p.plant_species_id
     JOIN gamma.recordings AS r ON p.plant_id = r.plant_id
-    WHERE p.plant_id = ?
+    WHERE p.plant_id = %s
     ORDER BY r.last_watering DESC
     """
     with get_connection() as conn:
