@@ -1,7 +1,61 @@
 # pylint: skip-file
 import pytest
 from unittest.mock import patch
-from transform_short import split_name, validate_latitude, validate_longitude, get_botanist_id
+from transform_short import split_name, validate_latitude, validate_longitude, get_botanist_id, get_species_id
+
+
+def test_get_species_id_found_by_scientific_name():
+    '''Tests retrieval fo species ID froma  matching scientific name'''
+    plant_data = {
+        "name": "rose",
+        "scientific_name": ["Rosa"]
+    }
+
+    all_names = {
+        "scientific_name": {
+            "Rosa": 1
+        },
+        "common_name": {
+            "Rose": 2
+        }
+    }
+
+    assert get_species_id(plant_data, all_names) == 1
+
+
+def test_get_species_id_found_by_common_name():
+    '''Tests retrieval fo species ID froma  matching common name'''
+    plant_data = {
+        "name": "rose"
+    }
+
+    all_names = {
+        "scientific_name": {},
+        "common_name": {
+            "Rose": 2
+        }
+    }
+    assert get_species_id(plant_data, all_names) == 2
+
+
+def test_get_species_id_not_found():
+    '''Tests that an error is raised if a species is not found.'''
+    plant_data = {
+        "name": "daisy",
+        "scientific_name": ["Bellis"]
+    }
+
+    all_names = {
+        "scientific_name": {
+            "Rosa": 1
+        },
+        "common_name": {
+            "Rose": 2
+        }
+    }
+
+    with pytest.raises(ValueError, match="Species not available"):
+        get_species_id(plant_data, all_names)
 
 
 @patch("transform_short.split_name", return_value=("John", "Doe"))
