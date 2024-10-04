@@ -26,8 +26,7 @@ class TestExtractPlantData:
         extract_plant_data()
 
         expected_extract_query = (
-            "SELECT recording_id, time_taken, soil_moisture, temperature, plant_id, botanist_id "
-            "FROM gamma.recordings;"
+            "SELECT * FROM gamma.recordings; "
         ).strip()
 
         expected_truncate_query = "TRUNCATE TABLE gamma.recordings;"
