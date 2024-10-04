@@ -1,7 +1,49 @@
 # pylint: skip-file
 import pytest
 from unittest.mock import patch
-from transform_short import split_name, validate_latitude, validate_longitude, get_botanist_id, get_species_id
+from transform_short import split_name, validate_latitude, validate_longitude, get_botanist_id, get_species_id, validate_plant
+
+
+@patch("transform_short.is_valid_email", return_value=True)
+@patch("transform_short.validate_origin_data", return_value=True)
+def test_validate_plant_valid_new_plant_with_origin(mock_is_valid_email, mock_validate_origin_data):
+    # Mock plant data for a new plant with valid origin data
+    plant = {
+        "botanist": {
+            "name": "Jane Doe",
+            "phone": "987654321",
+            "email": "jane.doe@botany.com"
+        },
+        "name": "Tulip",
+        "plant_id": 5,
+        "soil_moisture": 45,
+        "temperature": 20,
+        "last_watered": "2023-10-02",
+        "recording_taken": "2023-10-03",
+        "origin_data": {
+            "latitude": 34.05,
+            "longitude": -118.25
+        }
+    }
+
+    all_plant_ids = [1, 2, 3]
+
+    assert validate_plant(plant, all_plant_ids) is True
+
+
+def test_validate_plant_missing_required_keys():
+
+    plant = {
+        "botanist": {
+            "name": "John Doe",
+            "phone": "123456789"
+        },
+        "plant_id": 1
+    }
+
+    all_plant_ids = [1, 2, 3]
+
+    assert validate_plant(plant, all_plant_ids) is False
 
 
 def test_get_species_id_found_by_scientific_name():

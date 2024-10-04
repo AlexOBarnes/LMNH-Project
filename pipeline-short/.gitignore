@@ -2,3 +2,4 @@
 *.log
 logs/*.log
 venv/
+.coverage
