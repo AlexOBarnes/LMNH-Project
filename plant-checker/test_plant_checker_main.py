@@ -25,7 +25,7 @@ class TestPlantConditions(unittest.TestCase):
         mock_connect.return_value = mock_connection
 
         with patch.dict('os.environ', {
-            'HOST': 'localhost',
+            'DB_HOST': 'localhost',
             'DB_PORT': '1433',
             'DB_NAME': 'test_db',
             'DB_USER': 'test_user',
