@@ -134,7 +134,15 @@ resource "aws_ecs_task_definition" "dashboard_task"{
             {
                 name = "DB_PASSWORD"
                 value = var.DB_PW
-            },            
+            },   
+            {
+              name = "US_ACCESS_KEY"
+              value = var.US_ACCESS_KEY
+            },
+            {
+              name = "US_SECRET_ACCESS_KEY"
+              value = var.US_SECRET_KEY
+            },         
         ]
     logConfiguration= {
                 logDriver= "awslogs"

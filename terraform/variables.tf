@@ -68,3 +68,9 @@ variable "FOLDER" {
 variable "DB_SCHEMA" {
     type = string
 }
+variable "US_ACCESS_KEY" {
+    type = string
+}
+variable "US_SECRET_KEY" {
+    type = string
+}
