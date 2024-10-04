@@ -34,6 +34,8 @@ DB_USER=<Your database user>
 DB_PASSWORD=<Your database password>
 AWS_ACCESS_KEY=<Your AWS access key>
 AWS_SECRET_ACCESS_KEY=<Your AWS secret key>
+US_ACCESS_KEY=<Your Unsplash API access key>
+US_SECRET_ACCESS_KEY+<Your Unsplash API secret access key>
 ```
 
 ### 3. **Installing Dependencies**
