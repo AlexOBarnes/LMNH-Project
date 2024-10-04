@@ -7,7 +7,6 @@ import requests
 import asyncio
 import aiohttp
 
-import pandas as pd
 from logger import logger_setup
 
 LOGGER = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ BASE_URL = "http://data-eng-plants-api.herokuapp.com/"
 REQUIRED_FIELDS = ["botanist", "plant_id"]
 
 
-def get_url(id: int):
+def get_url(id: int) -> str:
     '''Gets the API url'''
 
     url = f"{BASE_URL}/plants/{id}"
@@ -86,8 +85,8 @@ async def fetch_all_plants(num_plants: int) -> list:
         return [result for result in results if result]
 
 
-def extract() -> pd.DataFrame:
-    '''Return a dataframe with the extracted data'''
+def extract() -> list[dict]:
+    '''Return a list of dictionaries with the extracted data'''
     timer = perf_counter()
     num_plants = get_num_plants()
 
