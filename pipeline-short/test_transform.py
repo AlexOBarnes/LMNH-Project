@@ -1,6 +1,7 @@
 # pylint: skip-file
 import pytest
-from transform_short import split_name, validate_latitude, validate_longitude
+from unittest.mock import patch
+from transform_short import split_name, validate_latitude, validate_longitude, get_botanist_id
 
 
 def test_validate_longitude():
