@@ -47,8 +47,8 @@ def get_affected_plants() -> list[int]:
 
 def send_emergency_email(plants: list[int]) -> None:
     '''Sends an email using SES to a specified email address'''
-    ses = client("ses", aws_access_key_id=ENV["AWS_ACCESS_KEY"],
-                 aws_secret_access_key=ENV["AWS_SECRET_ACCESS_KEY"],
+    ses = client("ses", aws_access_key_id=ENV["MY_AWS_ACCESS_KEY"],
+                 aws_secret_access_key=ENV["MY_AWS_SECRET_KEY"],
                  region_name="eu-west-2")
     logging.info('SES client connection established.')
 
