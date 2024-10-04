@@ -6,6 +6,7 @@ from os import environ as ENV
 import pandas as pd
 from pymssql import connect
 from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ def get_connection():
                    as_dict=True)
 
 
+@st.cache_data
 def get_today_data(selected_plant, metric):
     """Fetches today's data for the selected plant."""
     # Use a direct query for a single plant ID
