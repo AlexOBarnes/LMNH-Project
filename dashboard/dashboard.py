@@ -165,7 +165,7 @@ with col2:
     species_data = fetch_plant_species_data(selected_plant)
     # Check if the DataFrame has data
     if not species_data.empty and species_data.shape[1] == 5:
-        species_data.columns = ["Plant ID", "Species ID", "Scientific Name", "Common Name", "Region"]
+        species_data.columns = ["Plant ID", "Species ID", "Scientific Name", "Common Name", "Last Watered"]
     else:
         st.error("The species_data DataFrame is either empty or does not have 5 columns.")
 
