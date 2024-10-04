@@ -22,7 +22,7 @@ def test_get_botanist_id_found(mock_split_name):
     assert botanist_id == 42
 
 
-@patch("transform_short.split_name", return_value=("John", "Doe"))
+@patch("transform_short.split_name", return_value=("John", "Noe"))
 def test_get_botanist_id_not_found(mock_split_name):
 
     botanist_data = {
