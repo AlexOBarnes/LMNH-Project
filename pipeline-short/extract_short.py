@@ -26,7 +26,7 @@ def get_url(id: int) -> str:
 def get_num_plants() -> int:
     '''Return the number of plants on display.'''
     timer = perf_counter()
-    response = requests.get(BASE_URL, timeout=10).json()
+    response = requests.get(BASE_URL, timeout=20).json()
 
     if response.get("success", False) is not False:
         num_plants = response.get("plants_on_display")
