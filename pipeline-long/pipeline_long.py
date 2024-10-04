@@ -28,6 +28,7 @@ def lambda_handler(event, context):
 
     csv_buffer = transform_data_to_csv(plant_data)
 
+
     try:
         upload_csv_to_s3(csv_buffer, bucket_name, bucket_folder_name)
         send_email(is_start=False, date=current_date)
