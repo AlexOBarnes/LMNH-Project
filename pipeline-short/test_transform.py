@@ -7,7 +7,7 @@ from transform_short import split_name, validate_latitude, validate_longitude, g
 def test_get_species_id_found_by_scientific_name():
     '''Tests retrieval fo species ID froma  matching scientific name'''
     plant_data = {
-        "name": "rose",
+        "name": "roses",
         "scientific_name": ["Rosa"]
     }
 
