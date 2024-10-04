@@ -6,7 +6,8 @@ from load_short import load
 
 
 def lambda_handler(event=None, context=None):
-    '''Lambda handler'''
+    '''Lambda handler. Connects to the database, extracts 
+    information from the API, '''
     try:
         with get_connection() as conn:
             extracted_data = extract()
