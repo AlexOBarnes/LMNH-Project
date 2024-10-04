@@ -348,3 +348,26 @@ resource "aws_sfn_state_machine" "plant_state_function" {
     }
   })
 }
+
+resource "aws_iam_policy" "lambda_s3_policy" {
+  name        = "c13-wshao-lambda-s3-policy"
+  description = "Allow Lambda to upload files to specific S3 bucket"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject"
+        ],
+        Resource = "arn:aws:s3:::c13-wshao-lmnh-long-term-storage/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_s3_policy_attachment" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_s3_policy.arn
+}
