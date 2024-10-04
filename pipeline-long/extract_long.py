@@ -40,8 +40,14 @@ def extract_plant_data() -> pd.DataFrame:
     with connect_to_rds() as conn:
         try:
             LOGGER.info("Executing extract query.")
-            df = pd.read_sql(extract_query, conn)
-            LOGGER.info("Data extraction successful.")
+            with conn.cursor() as cur:
+                cur.execute(extract_query)
+                result = cur.fetchall()
+                LOGGER.info("Data extraction successful.")
+
+            columns = [desc[0] for desc in cur.description]
+            df = pd.DataFrame(result, columns=columns)
+
         except Exception as e:
             LOGGER.error("Error during data extraction: %s", e)
             return pd.DataFrame(columns=["recording_id", "timestamp", "soil_moisture", "temperature", "plant_id", "botanist_id"])
