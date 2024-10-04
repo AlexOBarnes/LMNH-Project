@@ -25,10 +25,15 @@ DB_PASSWORD=XXXXX
 ## Setup: Dockerizing and Running on AWS 
 
 1.`brew install awscli`
+
 2. `aws configure`
+
 3. `aws ecr get-login-password --region {REGION}| docker login --username AWS --password-stdin {ECR_URI}`
+
 4. `docker build -t {image-name} . --platform "linux/amd64"`
+
 5. `docker tag {IMAGE_NAME}:latest {ECR_URI}:latest`
+
 6. `docker push {ECR_URI}:latest`
 
 
