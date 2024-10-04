@@ -1,4 +1,5 @@
 # pylint: disable=E0611
+# pylint: disable=E0401
 """This script contains the queries for recent and historical data."""
 
 from os import environ as ENV
@@ -31,18 +32,25 @@ def get_today_data(selected_plant, metric):
     """
 
     with get_connection() as conn:
-        df = pd.read_sql(query, conn)
+        cursor = conn.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
 
-    return df
+    return pd.DataFrame(result)
+
 
 
 def get_plant_ids():
     """Gets stored plant names."""
     query = "SELECT plant_id FROM gamma.plants;"
     with get_connection() as conn:
-        df = pd.read_sql(query, conn)
-    return df['plant_id'].tolist()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
 
+    return [row["plant_id"] for row in result]
 
 def fetch_plant_species_data(selected_plant_id):
     """Fetches plant species data based on selected plant ID."""
@@ -55,4 +63,9 @@ def fetch_plant_species_data(selected_plant_id):
     ORDER BY r.last_watering DESC
     """
     with get_connection() as conn:
-        return pd.read_sql(query, conn, params=(selected_plant_id,))
+        cursor = conn.cursor()
+        cursor.execute(query, (selected_plant_id,))
+        result = cursor.fetchall()
+        cursor.close()
+        
+    return pd.DataFrame(result)

@@ -1,3 +1,4 @@
+# pylint: disable=E0401
 """Dashboard 'About' page."""
 
 import streamlit as st
