@@ -14,27 +14,24 @@ from extract_short import extract
 LOGGER = logging.getLogger(__name__)
 
 
-def load():
-    with get_connection() as conn:
-        extracted_data = extract()
-        plants_to_insert, locations_to_insert, readings_to_insert = transform_plant_data(
-            conn, extracted_data)
+def load(conn, plants_to_insert: list[tuple], locations_to_insert: list[tuple], readings_to_insert: list[tuple]):
+    '''Given a list of plants, locations and readings to insert, uses a connection to insert them.'''
 
-        cur = conn.cursor()
+    cur = conn.cursor()
 
-        if locations_to_insert:
-            insert_into_locations_table(cur, locations_to_insert)
-            conn.commit()
+    if locations_to_insert:
+        insert_into_locations_table(cur, locations_to_insert)
+        conn.commit()
 
-        if plants_to_insert:
-            insert_new_plants(cur, plants_to_insert)
-            conn.commit()
+    if plants_to_insert:
+        insert_new_plants(cur, plants_to_insert)
+        conn.commit()
 
-        if readings_to_insert:
-            insert_new_recordings(cur, readings_to_insert)
-            conn.commit()
+    if readings_to_insert:
+        insert_new_recordings(cur, readings_to_insert)
+        conn.commit()
 
-        cur.close()
+    cur.close()
 
 
 def insert_new_recordings(cursor, recordings: list[tuple]):
