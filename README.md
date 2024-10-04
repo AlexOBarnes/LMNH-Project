@@ -23,6 +23,16 @@ The system will:
 - Automatically archive older data to an S3 bucket for cost-efficient long-term storage.
 - Provide stakeholders with an intuitive dashboard for visualising plant health data over time.
 
-## Installation
+## Installation and Setup
 
-## Setup
+This project consists of multiple components, each located in a separate subfolder. To set up the project correctly, you will need to follow the specific installation instructions provided in the README.md file within each subfolder.
+
+1. **Navigate to each subfolder:** Each component of the project is organized into its own directory. Make sure to visit each subfolder to set up the necessary environment, dependencies, and configurations.
+
+2. **Read the README.md file:** In each subfolder, you will find a README.md file with detailed instructions on how to install and configure that particular component. Follow the steps in the respective README.md to complete the setup.
+
+3. **Install dependencies:** Some components may require additional libraries or tools. Ensure you run the appropriate commands, such as pip install -r requirements.txt or other installation steps, as instructed in the subfolder's README.md.
+
+4. **Environment Configuration:** If environment variables or configurations are required, they will be specified in the corresponding README.md files. Make sure to configure those settings correctly.
+
+5. **Run the Project:** After following the setup instructions in all necessary subfolders, the project will be ready to run. Refer to the top-level README.md or subfolder-specific instructions for details on running the project.
